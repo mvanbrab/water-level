@@ -21,9 +21,9 @@ Further references:
 * https://en.wikipedia.org/wiki/Speed_of_sound
 
 # The receiver
-Currently I do not have finalised receiver.
-At this moment I use a prototype board with an Arduino Nano, and I watch the transmitter's output on the terminal window.
-A receiver project will be added once the transmitter has proven to work well in practice and over time.
+Currently I do not have a finalised receiver.
+At this moment I watch the transmitter's output on a terminal window.
+A receiver project will be added later. Stay tuned.
 
 
 

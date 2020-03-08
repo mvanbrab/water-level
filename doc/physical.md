@@ -1,7 +1,6 @@
 # Physical setup
 
 ## Description of the situation
-
 The following drawing illustrates the physical setup.
 
 ![drawing1](./reservoir.svg)
@@ -57,3 +56,13 @@ v = x / H1 * V
 ```
 (also for x <= H1)
 
+## Dimensions (in my setup)
+
+| dimension | value |
+| --------- | ----- |
+| H1 | 1,50 m |
+| H2 | 0,68 m |
+| H3 | 0,05 m |
+| H4 | 0,30 m |
+| V | 3000 l |
+| x (minimum safe) | 0,25 m |

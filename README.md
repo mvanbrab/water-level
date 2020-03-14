@@ -4,7 +4,7 @@ whose purpose is to measure the water level in a water reservoir,
 located under the ground.
 
 Further reading:
-* [The physicial setup](doc/physical.md)
+* [The physical setup](doc/physical.md)
 
 # The transmitter
 The first piece of hardware is a transmitter.

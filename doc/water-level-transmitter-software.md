@@ -6,8 +6,8 @@ The program waits for serial input, expected at 115200 Baud.
 The contents of the serial input don't care.
 
 As soon as serial input is received, one measurement is executed.
-First, the time for an ultrasonic burst to travel from the sensor to the water surface and to return is then measured.
-Next, from this time, taking into account temperature, the distance (and derived variables) are then calculated.
+First, the time for an ultrasonic burst to travel from the sensor to the water surface and back is measured.
+Next, from this time, the distance (and derived variables) are calculated, taking into account the ambient temperature.
 The result is packaged in a [JSON](https://tools.ietf.org/html/rfc7158) text, making it ready for human as well as machine consumption.
 
 Finally, any pending serial input that might be received in the mean time, is flushed and after a short delay, new serial input is expected, restarting the entire cycle.
@@ -44,7 +44,7 @@ Properties in the JSON object:
 | ------------- | ----- |
 | "t_C" | temperature, in °C |
 | "distance_m" | distance from sensor to water surface (d), in meter |
-| "height_m" | water level, heigth measured from the bottom (x), in meter |
+| "height_m" | water level, height measured from the bottom (x), in meter |
 | "vol_l" | volume of available water, in liter |
 | "vol_percent" | volume of available water, % of maximum volume |
 | "low" | boolean; true means water level below safety threshold |
@@ -76,7 +76,7 @@ Set the baudrate to 115200.
 
 Set line ending mode to Newline.
 
-Every push on the "Send" button, even with empty input line, results in a JSON text returned by the board.
+Every push on the *Send* button, even with an empty input line, should result in a JSON text (as illustrated) returned by the board.
 
 ## References
 * http://www.beckymarshall.com/depthSensor.html (Experiment 2)

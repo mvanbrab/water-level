@@ -3,7 +3,7 @@
 ## Description of the situation
 The following drawing illustrates the physical setup.
 
-![drawing1](./reservoir.svg)
+![drawing1](reservoir.svg)
 
 The reservoir is located under the ground.
 
@@ -65,4 +65,11 @@ v = x / H1 * V
 | H3 | 0,05 m |
 | H4 | 0,30 m |
 | V | 3000 l |
-| x (minimum safe) | 0,25 m |
+
+Additionally, one can define a *water level safety threshold X_MIN* as the water level or height x
+below which it isn't safe to continue water consumption using a pump.
+
+In my setup X_MIN = 0,25 m.
+
+
+

@@ -24,11 +24,16 @@
 Tmp36 tmp = Tmp36(TMP36_PIN, ADC_MAXVALUE, ADC_VOLTAGE);
 UsDetector det = UsDetector(US_TRIGPIN, US_ECHOPIN, US_TIMEOUT);
 
-// Distances, see drawing
+// --- Dimensions
+// H1 (meter)
 #define H1 1.50
+// H2 (meter)
 #define H2 0.68
+// H3 (meter)
 #define H3 0.05
-#define V_VOL 3000
+// V (liter)
+#define V 3000
+// X_MIN (meter)
 #define X_MIN 0.25
 
 float temperature;
@@ -85,7 +90,7 @@ void loop() {
     } else if (height > H1) {
       height = H1;
     }
-    volume = height / H1 * V_VOL;
+    volume = height / H1 * V;
     percent = height / H1 * 100.0;
     print_json();
     Serial.read();

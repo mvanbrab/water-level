@@ -3,9 +3,8 @@ Here I share hardware and software about my **water-level** project,
 whose purpose is to measure the water level in a water reservoir,
 located under the ground.
 
-# Common documentation
-Common documentation is available in the **doc** folder of this project:
-* [The physcial setup](doc/physical.md)
+Further reading:
+* [The physicial setup](doc/physical.md)
 
 # The transmitter
 The first piece of hardware is a transmitter.
@@ -16,9 +15,8 @@ Without Kicad installed, you can view [the schematic diagram as .pdf](../master/
 
 The folder **software/WaterLevelTransmitter** is an [Arduino](https://www.arduino.cc/) sketch, containing the software of the project.
 
-Further references:
-* http://www.beckymarshall.com/depthSensor.html (Experiment 2)
-* https://en.wikipedia.org/wiki/Speed_of_sound
+Further reading:
+* [The WaterLevelTransmitter software](doc/water-level-transmitter-software.md)
 
 # The receiver
 Currently I do not have a finalised receiver.

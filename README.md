@@ -11,7 +11,7 @@ The first piece of hardware is a transmitter.
 It measures the water level with a waterproof ultrasonic sensor and sends the measurement result as a JSON object via RS232 to a possibly connected receiver.
 
 In the folder **hardware/transmitter** you'll find the hardware design as a [KiCad](https://www.kicad-pcb.org/) project.
-Without Kicad installed, you can view [the schematic diagram as .pdf](../master/hardware/transmitter/plot_files/transmitter-schema.pdf).
+Without Kicad installed, you can view [the schematic diagram as .pdf](../master/hardware/transmitter.pdf).
 
 The folder **software/WaterLevelTransmitter** is an [Arduino](https://www.arduino.cc/) sketch, containing the software of the project.
 

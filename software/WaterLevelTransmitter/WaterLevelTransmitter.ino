@@ -1,5 +1,5 @@
 /*!
- * @file UsDetector.h
+ * @file WaterLevelTransmitter.ino
  *
  * Measure the water level in a reservoir with an ultrasone distance detector.
  *

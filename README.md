@@ -4,6 +4,7 @@ whose purpose is to measure the water level in a water reservoir,
 located under the ground.
 
 Further reading:
+* [A bit of history](doc/history.md)
 * [The physical setup](doc/physical.md)
 
 # The transmitter

@@ -35,7 +35,9 @@ The assembly, before closing
 
 ![assembly](transmitter-assembly-open.jpg)
 
-A view at the bottom of the assembly
+A view at the bottom of the assembly.
+Note that the aluminium angle brackets at the sides are a bit dirty;
+they are reused from [the past](history.md).
 
 ![assembly2](transmitter-assembly-bottom.jpg)
 

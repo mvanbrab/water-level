@@ -3,7 +3,7 @@ Here I share hardware and software about my **water-level** project,
 whose purpose is to measure the water level in a water reservoir,
 located under the ground.
 
-This project actually has a predecessor. If you want, you can laugh a bit with it in this [bit of history](doc/history.md).
+This project actually has a predecessor. Enjoy reading about it in this [bit of history](doc/history.md).
 
 # The transmitter
 The first piece of hardware is a transmitter.

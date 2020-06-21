@@ -4,7 +4,7 @@
 
 The program repeatedly sends a single "?" character to the Serial2 port, at 115200 Baud.
 Each "?" acts as a request for a new measurement to the connected transmitter.
-If all's well, the transmitter will reply with a JSON output as document in the [transmitter documentation](doc/water-level-transmitter-software.md).
+If all's well, the transmitter will reply with a JSON output as document in the [transmitter documentation](water-level-transmitter-software.md).
 
 The receiver will decode this JSON payload and publish it to several destinations.
 Currently, these are the supported destinations:

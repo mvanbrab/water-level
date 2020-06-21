@@ -49,8 +49,8 @@ void setup() {
     Serial2.read();
   }
   lcd.begin(LCD_COLS, LCD_ROWS);
-  lcd.setCursor(0, 1);
-  lcd.print("Level");
+  lcd.setCursor(4, 1);
+  lcd.print("%");
   lcd.setCursor(15, 1);
   lcd.print("l");
 
@@ -117,16 +117,38 @@ void consume() {
   int vol_l = (int) myObject["vol_l"];
   int vol_percent = (double) myObject["vol_percent"] + 0.5;
   bool low = (bool) myObject["low"];
-  
+
+  publishOnSerial(vol_l, vol_percent, low);
+  publishOnLCD(vol_l, vol_percent, low);
+}
+
+void publishOnSerial(int vol_l, int vol_percent, bool low) {
   Serial.printf("vol_l = %d l\n", vol_l);
   Serial.printf("vol_percent = %d %%\n", vol_percent);
   Serial.printf("low = %s\n", low ? "true" : "false");
-  
-  lcd.setCursor(9, 1);
-  lcd.printf("%5d", vol_l);
-  barGraph.display(vol_percent);
-  lcd.setCursor(6, 1);
-  lcd.print(low ? "LOW" : "OK ");
+}
+
+void publishOnLCD(int vol_l, int vol_percent, bool low) {
+  static int prevVol_l = -1;
+  static int prevVol_percent = -1;
+  static bool prevLow = false;
+
+  if (vol_l != prevVol_l) {
+    lcd.setCursor(9, 1);
+    lcd.printf("%5d", vol_l);
+    prevVol_l = vol_l;
+  }
+  if (vol_percent != prevVol_percent) {
+    lcd.setCursor(0, 1);
+    lcd.printf("%3d", vol_percent);
+    barGraph.display(vol_percent);
+    prevVol_percent = vol_percent;
+  }
+  if (low != prevLow) {
+    lcd.setCursor(6, 1);
+    lcd.print(low ? "LOW" : "   ");
+    prevLow = low;
+  }
 }
 
 void loop() {

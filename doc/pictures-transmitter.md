@@ -2,6 +2,9 @@
 
 ## The printed circuit board
 
+**Many thanks to my friend and colleague Dylan who was so kind to mill
+this printed circuit board on his self-made milling machine!**
+
 Bottom view before assembly
 
 ![pcb](transmitter-pcb.jpg)

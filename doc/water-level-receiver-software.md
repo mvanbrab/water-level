@@ -26,5 +26,5 @@ LCD output consist of:
 ## Testing
 
 Recompiling the code after changing the preprocessor value of DEBUG to 1 will result in:
-- two fake JSON payloads being published first;
+- some fake JSON payloads being published first;
 - all input received at Serial2 being echoed to Serial.

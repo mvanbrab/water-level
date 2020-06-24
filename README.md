@@ -39,5 +39,9 @@ The folder **software/WaterLevelReceiver** is an [Arduino](https://www.arduino.c
 
 Read more about this piece of software [here](doc/water-level-receiver-software.md).
 
+# Lessons learned
+[The temperature measurement](doc/ll-temperature.md)
+
+
 
 

@@ -254,7 +254,6 @@ void publishOnThingSpeak(double tDegreesCelcius, int volumeLiterInt, int volumeP
   static unsigned long t0Writing;
   unsigned long t1Writing;
   static bool first = true;
-  static bool prevLowBool;
 
   // non-blocking Wifi control
   switch (wifiControlStatus) {
@@ -315,15 +314,13 @@ void publishOnThingSpeak(double tDegreesCelcius, int volumeLiterInt, int volumeP
 #endif
       return;
     }
-    if (first || (lowBool != prevLowBool)) {
-      x = ThingSpeak.setStatus(lowBool ? "LOW" : "OK");
-      if (x != 200) {
+    x = ThingSpeak.setStatus(lowBool ? "LOW" : "OK");
+    if (x != 200) {
 #if DEBUG_WIFI == 1
-        Serial.printf("Problem updating status: %d.", x);
-        Serial.println();
+      Serial.printf("Problem updating status: %d.", x);
+      Serial.println();
 #endif
-        return;
-      }
+      return;
     }
     x = ThingSpeak.writeFields(myChannelNumber, myWriteAPIKey);
     if (x == 200) {
@@ -345,7 +342,6 @@ void publishOnThingSpeak(double tDegreesCelcius, int volumeLiterInt, int volumeP
     
     t0Writing = t1Writing;
     first = false;
-    prevLowBool = lowBool;
   }
 }
 

@@ -298,7 +298,15 @@ void publishOnThingSpeak(double tDegreesCelcius, double volumeLiter, double volu
   if (first || (t1Writing - t0Writing) >= UPDATE_THINGSPEAK_EVERY_N_MILLISECONDS) {
     // Multi-write to ThingSpeak.
     int x;
-    x = ThingSpeak.setField(1, (float)volumePercent);
+    x = ThingSpeak.setField(1, (float)volumeLiter);
+    if (x != 200) {
+#if DEBUG_WIFI == 1
+      Serial.printf("Problem updating volumeLiter: %d.", x);
+      Serial.println();
+#endif
+      return;
+    }
+    x = ThingSpeak.setField(2, (float)volumePercent);
     if (x != 200) {
 #if DEBUG_WIFI == 1
       Serial.printf("Problem updating volumePercent: %d.", x);
@@ -306,7 +314,7 @@ void publishOnThingSpeak(double tDegreesCelcius, double volumeLiter, double volu
 #endif
       return;
     }
-    x = ThingSpeak.setField(2, (float)tDegreesCelcius);
+    x = ThingSpeak.setField(3, (float)tDegreesCelcius);
     if (x != 200) {
 #if DEBUG_WIFI == 1
       Serial.printf("Problem updating tDegreesCelcius: %d.", x);

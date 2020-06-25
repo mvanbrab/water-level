@@ -41,8 +41,9 @@ and the output is directed to a specific channel, to be created by the user.
 Output to the ThingSpeak channel is reduced to one write per minute.
 
 The output in the channel consists of:
-- a field (field 1) for the volume as percentage;
-- a field (field 2) for the temperature;
+- a field (field 1) for the volume in liters;
+- a field (field 2) for the volume as percentage;
+- a field (field 3) for the temperature;
 - a status (either "LOW" or "OK"), representing the LOW indicator.
 
 ![thingspeak-output](thingspeak-output.jpg)

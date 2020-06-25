@@ -195,13 +195,11 @@ void consume(const char * inputString) {
   smooth(low,             (double)((bool) myObject["low"]),  first);
   first = false;
 
-  int volumeLiterInt = volumeLiter + 0.5;
-  int volumePercentInt = volumePercent + 0.5;
   bool lowBool = (low >= 0.5);
 
-  publishOnSerial(tDegreesCelcius, volumeLiterInt, volumePercentInt, lowBool);
-  publishOnLCD(tDegreesCelcius, volumeLiterInt, volumePercentInt, lowBool);
-  publishOnThingSpeak(tDegreesCelcius, volumeLiterInt, volumePercentInt, lowBool);
+  publishOnSerial(tDegreesCelcius, volumeLiter, volumePercent, lowBool);
+  publishOnLCD(tDegreesCelcius, volumeLiter, volumePercent, lowBool);
+  publishOnThingSpeak(tDegreesCelcius, volumeLiter, volumePercent, lowBool);
 }
 
 void smooth(double& smoothed, double raw, bool first) {
@@ -212,21 +210,22 @@ void smooth(double& smoothed, double raw, bool first) {
   }
 }
 
-void publishOnSerial(double tDegreesCelcius, int volumeLiterInt, int volumePercentInt, bool lowBool) {
+void publishOnSerial(double tDegreesCelcius, double volumeLiter, double volumePercent, bool lowBool) {
   char buf[100];
   sprintf(buf, "t = %lf °C", tDegreesCelcius);
   Serial.println(buf);
-  sprintf(buf, "volume = %d l (%d %%)%s", volumeLiterInt, volumePercentInt, lowBool ? " LOW!" : "");
+  sprintf(buf, "volume = %lf l (%lf %%)%s", volumeLiter, volumePercent, lowBool ? " LOW!" : "");
   Serial.println(buf);
 }
 
-void publishOnLCD(double tDegreesCelcius, int volumeLiterInt, int volumePercentInt, bool lowBool) {
+void publishOnLCD(double tDegreesCelcius, double volumeLiter, double volumePercent, bool lowBool) {
   static int prevVolumeLiterInt = -1;
   static int prevVolumePercentInt = -1;
   static bool prevLowBool = false;
   static const char heartBeat[] = {'*', ' '};
   static uint8_t iHeartBeat = 0;
 
+  int volumePercentInt = volumePercent + 0.5;
   if (volumePercentInt != prevVolumePercentInt) {
     lcd.setCursor(LCD_PERCENT_VALUE_X, LCD_PERCENT_VALUE_Y);
     lcd.printf("%3d", volumePercentInt);
@@ -238,6 +237,7 @@ void publishOnLCD(double tDegreesCelcius, int volumeLiterInt, int volumePercentI
     lcd.print(lowBool ? "LOW" : "   ");
     prevLowBool = lowBool;
   }
+  int volumeLiterInt = volumeLiter + 0.5;
   if (volumeLiterInt != prevVolumeLiterInt) {
     lcd.setCursor(LCD_L_VALUE_X, LCD_L_VALUE_Y);
     lcd.printf("%5d", volumeLiterInt);
@@ -248,7 +248,7 @@ void publishOnLCD(double tDegreesCelcius, int volumeLiterInt, int volumePercentI
   iHeartBeat = (iHeartBeat + 1) % (sizeof(heartBeat) / sizeof(heartBeat[0]));
 }
 
-void publishOnThingSpeak(double tDegreesCelcius, int volumeLiterInt, int volumePercentInt, bool lowBool) {
+void publishOnThingSpeak(double tDegreesCelcius, double volumeLiter, double volumePercent, bool lowBool) {
   static WifiControlStatus wifiControlStatus = WCS_INITIAL;
   static unsigned long t0Connecting;
   static unsigned long t0Writing;
@@ -298,10 +298,10 @@ void publishOnThingSpeak(double tDegreesCelcius, int volumeLiterInt, int volumeP
   if (first || (t1Writing - t0Writing) >= UPDATE_THINGSPEAK_EVERY_N_MILLISECONDS) {
     // Multi-write to ThingSpeak.
     int x;
-    x = ThingSpeak.setField(1, volumePercentInt);
+    x = ThingSpeak.setField(1, (float)volumePercent);
     if (x != 200) {
 #if DEBUG_WIFI == 1
-      Serial.printf("Problem updating volumePercentInt: %d.", x);
+      Serial.printf("Problem updating volumePercent: %d.", x);
       Serial.println();
 #endif
       return;

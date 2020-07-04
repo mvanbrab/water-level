@@ -49,6 +49,7 @@
 #define LCD_L_SIGN_Y 1
 #define LCD_HEARTBEAT_X 15
 #define LCD_HEARTBEAT_Y 1
+#define BACKLIGHT_BUTTON_IOPIN 12
 
 // An LCD device is connected via I2C, the I2C address is known,
 // so using this constructor of this derived class.
@@ -76,6 +77,7 @@ char inputBuffer[BUFFER_LENGTH];
 #define INITIAL_DELAY_MILLISECONDS 15000ul
 #define TRIGGER_EVERY_N_MILLISECONDS 1000ul
 #define UPDATE_THINGSPEAK_EVERY_N_MILLISECONDS 60000ul
+#define DEBOUNCE_DELAY_MILLISECONDS 100ul
 unsigned long t0;
 unsigned long t1;
 
@@ -93,6 +95,8 @@ void setup() {
   lcd.print("%");
   lcd.setCursor(LCD_L_SIGN_X, LCD_L_SIGN_Y);
   lcd.print("l");
+  lcd.noBacklight();
+  pinMode(BACKLIGHT_BUTTON_IOPIN, INPUT_PULLUP);
 
   WiFi.mode(WIFI_STA);   
   ThingSpeak.begin(client);
@@ -353,10 +357,32 @@ void publishOnThingSpeak(double tDegreesCelcius, double volumeLiter, double volu
   }
 }
 
+void controlBacklight() {
+  static unsigned long tPrev = 0;
+  static bool onPrev = false;
+  unsigned long tNow;
+  bool onNow;
+
+  tNow = millis();
+  if (tNow - tPrev > DEBOUNCE_DELAY_MILLISECONDS) {
+    onNow = (digitalRead(BACKLIGHT_BUTTON_IOPIN) == 0);
+    if (onNow != onPrev) {
+      if (onNow) {
+        lcd.backlight();
+      } else {
+        lcd.noBacklight();
+      }
+      tPrev = tNow;
+      onPrev = onNow;
+    }
+  }
+}
+
 void loop() {
   if (timeToTrigger()) {
     trigger();
   } else {
     collect();
   }
+  controlBacklight();
 }

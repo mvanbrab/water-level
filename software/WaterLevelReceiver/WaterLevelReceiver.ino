@@ -83,16 +83,16 @@ const char * myWriteAPIKey = SECRET_WRITE_APIKEY;
  */
 void setup() {
   pinMode(BACKLIGHT_BUTTON_IOPIN, INPUT_PULLUP);
-  
+
   Serial.begin(115200);
   Serial2.begin(115200);
   unsigned long tSerial2 = millis();
-  
+
   lcd.begin(LCD_COLS, LCD_ROWS);
   lcd.print("Initialising...");
   backlightOn = true;
 
-  WiFi.mode(WIFI_STA);   
+  WiFi.mode(WIFI_STA);
   ThingSpeak.begin(client);
 
   // be patient with serial port 2:
@@ -205,7 +205,7 @@ void handleFakeInput() {
     }
   }
 }
-#endif  
+#endif
 
 /*!
  * Consume one collected input string

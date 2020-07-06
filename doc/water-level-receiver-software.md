@@ -12,6 +12,10 @@ Currently, these are the supported destinations:
 - a character-based LCD display using the hd44780 chip;
 - a channel on https://thingspeak.com.
 
+In addition, the program watches button input.
+Currently, there is only one button defined:
+- a button connected between GPIO12 and ground: controls LCD backlight (button closed = backlight on).
+
 ## Serial port output
 
 Serial port output consists of:
@@ -61,5 +65,5 @@ This is to guarantee the one second update interval for the other destinations.
 
 ## Testing
 
-Some DEBUG... preprocesser definitions are available to assist debugging the code.
+Some DEBUG... preprocessor definitions are available to assist debugging the code.
 They provide possibilities to output debug information and to provide fake input.

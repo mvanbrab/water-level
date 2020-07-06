@@ -30,6 +30,9 @@
 // 1: start by processing some fake input, 0: no fake input
 #define DEBUG_FAKE_INPUT 0
 
+// IO pins
+#define BACKLIGHT_BUTTON_IOPIN 12
+
 // LCD info
 #define LCD_ADDR 0x27
 #define LCD_COLS 16
@@ -39,17 +42,12 @@
 #define LCD_BAR_L 16
 #define LCD_PERCENT_VALUE_X 0
 #define LCD_PERCENT_VALUE_Y 1
-#define LCD_PERCENT_SIGN_X 3
-#define LCD_PERCENT_SIGN_Y 1
 #define LCD_LOW_VALUE_X 5
 #define LCD_LOW_VALUE_Y 1
 #define LCD_L_VALUE_X 9
 #define LCD_L_VALUE_Y 1
-#define LCD_L_SIGN_X 14
-#define LCD_L_SIGN_Y 1
 #define LCD_HEARTBEAT_X 15
 #define LCD_HEARTBEAT_Y 1
-#define BACKLIGHT_BUTTON_IOPIN 12
 
 // An LCD device is connected via I2C, the I2C address is known,
 // so using this constructor of this derived class.
@@ -57,6 +55,10 @@ hd44780_I2Cexp lcd(LCD_ADDR);
 
 // The bar graph to display the percentage
 LCDbarGraph barGraph(lcd, LCD_BAR_X, LCD_BAR_Y, LCD_BAR_L, 0, 100);
+
+// The status of the backlight
+bool backlightOn;
+
 
 // WiFi
 char ssid[] = SECRET_SSID;   // your network SSID (name) 
@@ -68,45 +70,112 @@ enum WifiControlStatus {WCS_INITIAL, WCS_CONNECTING, WCS_CONNECTED};
 unsigned long myChannelNumber = SECRET_CH_ID;
 const char * myWriteAPIKey = SECRET_WRITE_APIKEY;
 
-// Buffer to collect input
-uint8_t iInputBuffer;
-#define BUFFER_LENGTH 256
-char inputBuffer[BUFFER_LENGTH];
+// Timing - everything unsigned long, milliseconds
+#define INITIAL_SERIAL2_DELAY 1000ul
+#define INITIAL_TRIGGER_DELAY 15000ul
+#define TRIGGER_INTERVAL 1000ul
+#define WIFI_CONNECTION_DELAY 10000ul
+#define THINGSPEAK_INTERVAL 60000ul
+#define BUTTON_DEBOUNCE_DELAY 100ul
 
-// Timing
-#define INITIAL_DELAY_MILLISECONDS 15000ul
-#define TRIGGER_EVERY_N_MILLISECONDS 1000ul
-#define UPDATE_THINGSPEAK_EVERY_N_MILLISECONDS 60000ul
-#define DEBOUNCE_DELAY_MILLISECONDS 100ul
-unsigned long t0;
-unsigned long t1;
-
+/*!
+ * Arduino's setup function
+ */
 void setup() {
+  pinMode(BACKLIGHT_BUTTON_IOPIN, INPUT_PULLUP);
+  
   Serial.begin(115200);
   Serial2.begin(115200);
-  // be patient with serial port 2:
-  // wait until initialised and then flush rubbish input
-  delay(1000);
-  while (Serial2.available() > 0 ) {
-    Serial2.read();
-  }
+  unsigned long tSerial2 = millis();
+  
   lcd.begin(LCD_COLS, LCD_ROWS);
-  lcd.setCursor(LCD_PERCENT_SIGN_X, LCD_PERCENT_SIGN_Y);
-  lcd.print("%");
-  lcd.setCursor(LCD_L_SIGN_X, LCD_L_SIGN_Y);
-  lcd.print("l");
-  lcd.noBacklight();
-  pinMode(BACKLIGHT_BUTTON_IOPIN, INPUT_PULLUP);
+  lcd.print("Initialising...");
+  backlightOn = true;
 
   WiFi.mode(WIFI_STA);   
   ThingSpeak.begin(client);
 
-  iInputBuffer = 0;
-  t0 = millis();
+  // be patient with serial port 2:
+  // wait until initialised and then flush rubbish input
+  while (millis() - tSerial2 < INITIAL_SERIAL2_DELAY) {
+    // empty
+  }
+  while (Serial2.available() > 0 ) {
+    Serial2.read();
+  }
+}
+
+/*!
+ * Arduino's loop function
+ */
+void loop() {
+#if DEBUG_FAKE_INPUT == 0
+  handleTransmitter();
+#else
+  handleFakeInput();
+#endif
+  handleButtons();
+}
+
+/*!
+ * Interact with the WaterLevelTransmitter
+ */
+void handleTransmitter() {
+  static bool first = true;
+  static unsigned long tPrev = 0;
+  static uint8_t iInputBuffer = 0;
+#define BUFFER_LENGTH 256
+  static char inputBuffer[BUFFER_LENGTH];
+  unsigned long tNow;
+
+  if (first) {
+    // ignore the response of the transmitter to initial uncontrolled output on our Serial2
+    while (Serial2.available() > 0) {
+      Serial2.read();
+    }
+    // first trigger?
+    tNow = millis();
+    if (tNow - tPrev >= INITIAL_TRIGGER_DELAY) {
+      Serial2.print("?");
+      first = false;
+      tPrev = tNow;
+    }
+  } else {
+    // handle the response of the transmitter
+    while (Serial2.available() > 0) {
+      char c;
+      c = Serial2.read();
+      if (iInputBuffer == 0) {
+        if (c == '{') {
+          inputBuffer[iInputBuffer++] = c;
+        }
+      } else if (iInputBuffer < BUFFER_LENGTH - 1) {
+        inputBuffer[iInputBuffer++] = c;
+        if (c == '}') {
+          inputBuffer[iInputBuffer] = '\0';
+          consume(inputBuffer);
+          iInputBuffer = 0;
+        }
+      } else {
+        // oops, avoid buffer overflow
+        iInputBuffer = 0;
+      }
+    }
+    // next trigger?
+    tNow = millis();
+    if (tNow - tPrev >= TRIGGER_INTERVAL) {
+      Serial2.print("?");
+      tPrev = tNow;
+    }
+  }
+}
 
 #if DEBUG_FAKE_INPUT == 1
-  //consume some fake data; useful if not connected to the transmitter
-  const char * fakeInput[] = {
+/*!
+ * Replacement for handleTransmitter() for debugging; useful to test if not connected to the transmitter
+ */
+void handleFakeInput() {
+  static const char * fakeInput[] = {
     "{\"t_C\": -15.00, \"distance_m\": 2.130, \"height_m\": 0.000, \"vol_l\":    0, \"vol_percent\":   0.00, \"low\":  true}",
     "{\"t_C\": -10.00, \"distance_m\": 1.980, \"height_m\": 0.150, \"vol_l\":  300, \"vol_percent\":  10.00, \"low\":  true}",
     "{\"t_C\":  -5.00, \"distance_m\": 1.830, \"height_m\": 0.300, \"vol_l\":  600, \"vol_percent\":  20.00, \"low\": false}",
@@ -119,56 +188,30 @@ void setup() {
     "{\"t_C\":  21.50, \"distance_m\": 0.780, \"height_m\": 1.350, \"vol_l\": 2700, \"vol_percent\":  90.00, \"low\": false}",
     "{\"t_C\":  21.78, \"distance_m\": 0.630, \"height_m\": 1.500, \"vol_l\": 3000, \"vol_percent\": 100.00, \"low\": false}"
   };
-  int j;
-  for (int i = 0, j = 0 ; i < 600 ; i++) {
-    while (!timeToTrigger()) {
-      // wait
+  static int i = 0;
+  static int j = 0;
+  static unsigned long tPrev = 0;
+  unsigned long tNow;
+
+  if (i < 600) {
+    tNow = millis();
+    if (tNow - tPrev >= TRIGGER_INTERVAL) {
+      consume(fakeInput[j]);
+      if (j < sizeof(fakeInput)/sizeof(fakeInput[0]) - 1) {
+        j++;
+      }
+      i++;
+      tPrev = tNow;
     }
-    consume(fakeInput[j]);
-    if (j < sizeof(fakeInput)/sizeof(fakeInput[0]) - 1) {
-      j++;
-    }
-    t0 = t1;
   }
+}
 #endif  
 
-  // this is to skip the transmitter's responses to possible initial rubbish on the serial connection
-  delay(INITIAL_DELAY_MILLISECONDS);
-}
-
-bool timeToTrigger() {
-  t1 = millis();
-  return (t1 - t0 >= TRIGGER_EVERY_N_MILLISECONDS);
-}
-
-void trigger() {
-    Serial2.print("?");
-    t0 = t1;
-    iInputBuffer = 0;
-}
-
-void collect() {
-  if (Serial2.available() > 0) {
-    char c;
-    c = Serial2.read();
-    if (iInputBuffer == 0) {
-      if (c == '{') {
-        inputBuffer[iInputBuffer++] = c;
-      }
-    } else if (iInputBuffer < BUFFER_LENGTH - 1) {
-      inputBuffer[iInputBuffer++] = c;
-      if (c == '}') {
-        inputBuffer[iInputBuffer] = '\0';
-        consume(inputBuffer);
-        iInputBuffer = 0;
-      }
-    } else {
-      // oops, avoid buffer overflow
-      iInputBuffer = 0;
-    }
-  }
-}
-
+/*!
+ * Consume one collected input string
+ *
+ * @param inputString the collected JSON string
+ */
 void consume(const char * inputString) {
   static bool first = true;
   static double tDegreesCelcius;
@@ -177,7 +220,7 @@ void consume(const char * inputString) {
   static double low;
 
 #if DEBUG == 1
-  Serial.println(t1);
+  Serial.println(millis());
   Serial.println(inputString);
 #endif
 
@@ -206,6 +249,13 @@ void consume(const char * inputString) {
   publishOnThingSpeak(tDegreesCelcius, volumeLiter, volumePercent, lowBool);
 }
 
+/*!
+ * Smooth a measurement value
+ *
+ * @param smoothed reference to the smoothed value (to be provided to all next calls)
+ * @param raw the new measured value
+ * @param first if true, this is the first measurement (previous smoothed value will not be used)
+ */
 void smooth(double& smoothed, double raw, bool first) {
   if (first) {
     smoothed = raw;
@@ -214,6 +264,14 @@ void smooth(double& smoothed, double raw, bool first) {
   }
 }
 
+/*!
+ * Publish the measurements to the standard serial port
+ *
+ * @param tDegreesCelcius temperature in degrees Celcius
+ * @param volumeLiter volume in litres
+ * @param volumePercent volume as a percentage
+ * @param lowBool low indicator
+ */
 void publishOnSerial(double tDegreesCelcius, double volumeLiter, double volumePercent, bool lowBool) {
   char buf[100];
   sprintf(buf, "t = %lf °C", tDegreesCelcius);
@@ -222,7 +280,16 @@ void publishOnSerial(double tDegreesCelcius, double volumeLiter, double volumePe
   Serial.println(buf);
 }
 
+/*!
+ * Publish the measurements to the LCD display
+ *
+ * @param tDegreesCelcius temperature in degrees Celcius
+ * @param volumeLiter volume in litres
+ * @param volumePercent volume as a percentage
+ * @param lowBool low indicator
+ */
 void publishOnLCD(double tDegreesCelcius, double volumeLiter, double volumePercent, bool lowBool) {
+  static bool first = true;
   static int prevVolumeLiterInt = -1;
   static int prevVolumePercentInt = -1;
   static bool prevLowBool = false;
@@ -233,6 +300,9 @@ void publishOnLCD(double tDegreesCelcius, double volumeLiter, double volumePerce
   if (volumePercentInt != prevVolumePercentInt) {
     lcd.setCursor(LCD_PERCENT_VALUE_X, LCD_PERCENT_VALUE_Y);
     lcd.printf("%3d", volumePercentInt);
+    if (first) {
+      lcd.print("%");
+    }
     barGraph.display(volumePercentInt);
     prevVolumePercentInt = volumePercentInt;
   }
@@ -245,26 +315,41 @@ void publishOnLCD(double tDegreesCelcius, double volumeLiter, double volumePerce
   if (volumeLiterInt != prevVolumeLiterInt) {
     lcd.setCursor(LCD_L_VALUE_X, LCD_L_VALUE_Y);
     lcd.printf("%5d", volumeLiterInt);
+    if (first) {
+      lcd.print("l");
+    }
     prevVolumeLiterInt = volumeLiterInt;
   }
   lcd.setCursor(LCD_HEARTBEAT_X, LCD_HEARTBEAT_Y);
   lcd.write(heartBeat[iHeartBeat]);
   iHeartBeat = (iHeartBeat + 1) % (sizeof(heartBeat) / sizeof(heartBeat[0]));
+  first = false;
 }
 
+/*!
+ * Publish the measurements to ThingSpeak
+ *
+ * Publishing frequency is restricted and the connection is controlled in here too.
+ *
+ * @param tDegreesCelcius temperature in degrees Celcius
+ * @param volumeLiter volume in litres
+ * @param volumePercent volume as a percentage
+ * @param lowBool low indicator
+ */
 void publishOnThingSpeak(double tDegreesCelcius, double volumeLiter, double volumePercent, bool lowBool) {
   static WifiControlStatus wifiControlStatus = WCS_INITIAL;
-  static unsigned long t0Connecting;
-  static unsigned long t0Writing;
-  unsigned long t1Writing;
+  static unsigned long tPrevConnecting;
+  static unsigned long tPrevWriting;
   static bool first = true;
+  unsigned long tNowConnecting;
+  unsigned long tNowWriting;
 
   // non-blocking Wifi control
   switch (wifiControlStatus) {
     case WCS_INITIAL:
       WiFi.begin(ssid, pass); // Connect to WPA/WPA2 network. Change this line if using open or WEP network
       wifiControlStatus = WCS_CONNECTING;
-      t0Connecting = millis();
+      tPrevConnecting = millis();
 #if DEBUG_WIFI == 1
       Serial.printf("Wifi: attempting to connect to SSID: %s.", ssid);
       Serial.println();
@@ -278,8 +363,16 @@ void publishOnThingSpeak(double tDegreesCelcius, double volumeLiter, double volu
 #endif
       } else {
         // retry if it takes too long
-        if ((millis() - t0Connecting) > 10000ul) {
+        tNowConnecting = millis();
+        if (tNowConnecting - tPrevConnecting >= WIFI_CONNECTION_DELAY) {
+#if DEBUG_WIFI == 1
+          Serial.println("Wifi: connection timeout.");
+#endif
           wifiControlStatus = WCS_INITIAL;
+        } else {
+#if DEBUG_WIFI == 1
+          Serial.println("Wifi: waiting for connection.");
+#endif
         }
         return;
       }
@@ -298,8 +391,8 @@ void publishOnThingSpeak(double tDegreesCelcius, double volumeLiter, double volu
   }
 
   // If we get here, WiFi is connected
-  t1Writing = millis();
-  if (first || (t1Writing - t0Writing) >= UPDATE_THINGSPEAK_EVERY_N_MILLISECONDS) {
+  tNowWriting = millis();
+  if (first || (tNowWriting - tPrevWriting) >= THINGSPEAK_INTERVAL) {
     // Multi-write to ThingSpeak.
     int x;
     x = ThingSpeak.setField(1, (float)volumeLiter);
@@ -337,7 +430,7 @@ void publishOnThingSpeak(double tDegreesCelcius, double volumeLiter, double volu
     x = ThingSpeak.writeFields(myChannelNumber, myWriteAPIKey);
     if (x == 200) {
 #if DEBUG_WIFI == 1
-      Serial.printf("Fields written successfully to ThingSpeak at %ld.", t1Writing);
+      Serial.printf("Fields written successfully to ThingSpeak at %ld.", tNowWriting);
       Serial.println();
 #endif
     } else {
@@ -352,37 +445,31 @@ void publishOnThingSpeak(double tDegreesCelcius, double volumeLiter, double volu
     lcd.setCursor(LCD_HEARTBEAT_X, LCD_HEARTBEAT_Y);
     lcd.write('.');
     
-    t0Writing = t1Writing;
+    tPrevWriting = tNowWriting;
     first = false;
   }
 }
 
-void controlBacklight() {
-  static unsigned long tPrev = 0;
-  static bool onPrev = false;
+/*!
+ * Check buttons and do appropriate actions
+ */
+void handleButtons() {
+  static unsigned long tPrevBacklight = 0;
   unsigned long tNow;
-  bool onNow;
+  bool pushed;
 
   tNow = millis();
-  if (tNow - tPrev > DEBOUNCE_DELAY_MILLISECONDS) {
-    onNow = (digitalRead(BACKLIGHT_BUTTON_IOPIN) == 0);
-    if (onNow != onPrev) {
-      if (onNow) {
+  // control LCD backlight
+  if (tNow - tPrevBacklight >= BUTTON_DEBOUNCE_DELAY) {
+    pushed = (digitalRead(BACKLIGHT_BUTTON_IOPIN) == 0);
+    if (pushed != backlightOn) {
+      if (pushed) {
         lcd.backlight();
       } else {
         lcd.noBacklight();
       }
-      tPrev = tNow;
-      onPrev = onNow;
+      tPrevBacklight = tNow;
+      backlightOn = pushed;
     }
   }
-}
-
-void loop() {
-  if (timeToTrigger()) {
-    trigger();
-  } else {
-    collect();
-  }
-  controlBacklight();
 }

@@ -1,0 +1,4 @@
+(fp_lib_table
+  (lib (name Socket_Arduino_Nano)(type KiCad)(uri ${KIPRJMOD}/Socket_Arduino_Nano.pretty)(options "")(descr ""))
+  (lib (name MyFootprints)(type KiCad)(uri "$(KIPRJMOD)/MyFootprints.pretty")(options "")(descr ""))
+)

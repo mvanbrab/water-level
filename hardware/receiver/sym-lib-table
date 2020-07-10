@@ -1,0 +1,4 @@
+(sym_lib_table
+  (lib (name MyLib)(type Legacy)(uri ${KIPRJMOD}/library/MyLib.lib)(options "")(descr ""))
+  (lib (name transmitter-rescue)(type Legacy)(uri ${KIPRJMOD}/transmitter-rescue.lib)(options "")(descr "")(disabled))
+)

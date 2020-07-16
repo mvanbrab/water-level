@@ -24,8 +24,6 @@ Serial port output consists of:
 - the volume as percentage in numerical form;
 - a LOW indicator, only written if the level is low.
 
--the decode values of the volume in liters, the volume as a percentage and the low indicator.
-
 ## LCD output
 
 LCD output consist of:
@@ -45,10 +43,10 @@ and the output is directed to a specific channel, to be created by the user.
 Output to the ThingSpeak channel is reduced to one write per minute.
 
 The output in the channel consists of:
-- a field (field 1) for the volume in liters;
-- a field (field 2) for the volume as percentage;
-- a field (field 3) for the temperature;
-- a status (either "LOW" or "OK"), representing the LOW indicator.
+- field 1: the volume in liters;
+- field 2: the volume as percentage;
+- field 3: the temperature;
+- field 4: the LOW indicator (0 = OK; 1 = LOW).
 
 ![thingspeak-output](thingspeak-output.jpg)
 

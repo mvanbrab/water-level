@@ -419,10 +419,10 @@ void publishOnThingSpeak(double tDegreesCelcius, double volumeLiter, double volu
 #endif
       return;
     }
-    x = ThingSpeak.setStatus(lowBool ? "LOW" : "OK");
+    x = ThingSpeak.setField(4, lowBool ? 1 : 0);
     if (x != 200) {
 #if DEBUG_WIFI == 1
-      Serial.printf("Problem updating status: %d.", x);
+      Serial.printf("Problem updating LOW indication: %d.", x);
       Serial.println();
 #endif
       return;

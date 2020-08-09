@@ -1,11 +1,22 @@
 # Pictures related to the receiver
 
-## The prototype
+## The printed circuit board
 
-View on the operational prototype
+**Many thanks to my friend and colleague Dylan who was so kind to mill
+this printed circuit board, as he did for the transmitter earlier!**
 
-![receiver-proto](receiver-prototype.jpg)
+Bottom view before assembly
 
-Zoom-in on the processor board
+![pcb](receiver-pcb.jpg)
 
-![receiver-proto-processor](receiver-prototype-processor.jpg)
+Top view after assembly.
+Note that on the ESP32-DevKitC V4 capacitor C15 was removed, as
+[documented here](https://docs.espressif.com/projects/esp-idf/en/v3.3/get-started/get-started-devkitc.html#note-on-c15).
+
+![pcb2](receiver-pcb2.jpg)
+
+Wires connected and operational.
+Note the processor board receives power from USB here, so J2 is not connected.
+
+![pcb3](receiver-pcb3.jpg)
+

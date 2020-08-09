@@ -45,6 +45,14 @@ The folder **software/WaterLevelReceiver** is an [Arduino](https://www.arduino.c
 
 Read more about this piece of software [here](doc/water-level-receiver-software.md).
 
+# Connecting the transmitter with the receiver
+
+| Transmitter | Receiver   |
+| ----------- | ---------- |
+| GND (J1.2)  | GND (J1.3) |
+| TXD (J1.4)  | RXD (J1.2) |
+| RXD (J1.5)  | TXD (J1.1) |
+
 # Lessons learned
 [The temperature measurement](doc/ll01.md)
 

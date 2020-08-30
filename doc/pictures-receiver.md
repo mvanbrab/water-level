@@ -20,3 +20,12 @@ Note the processor board receives power from USB here, so J2 is not connected.
 
 ![pcb3](receiver-pcb3.jpg)
 
+## The assembled box
+
+The box (open).
+
+![box1](receiver-box1.jpg)
+
+The box (closed).
+
+![box2](receiver-box2.jpg)

@@ -59,6 +59,6 @@ Read more about this piece of software [here](doc/water-level-receiver-software.
 [The temperature measurement](doc/ll01.md)
 
 # Current issues
-[Condensation on the sensor](doc/ci01.md]
+[Condensation on the sensor](doc/ci01.md)
 
 

@@ -30,7 +30,7 @@ UsDetector det = UsDetector(US_TRIGPIN, US_ECHOPIN, US_TIMEOUT);
 // H2 (meter)
 #define H2 0.68
 // H3 (meter)
-#define H3 0.05
+#define H3 0.07
 // V (liter)
 #define V 3000
 // X_MIN (meter)

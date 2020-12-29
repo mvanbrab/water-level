@@ -10,7 +10,8 @@ The receiver will decode this JSON payload and publish it to several destination
 Currently, these are the supported destinations:
 - the serial port accessible through the USB connection (at 115200 Baud);
 - a character-based LCD display using the hd44780 chip;
-- a channel on https://thingspeak.com.
+- in earlier versions: a channel on https://thingspeak.com;
+- in later versions: an MQTT topic.
 
 In addition, the program watches button input.
 Currently, there is only one button defined:
@@ -60,6 +61,20 @@ you must create your own secrets.h file, based on the instructions available in 
 The WiFi is controlled using a state machine rather than the approach found in the WiFi
 and ThingSpeak examples, in order to avoid the 5 seconds blocking found in these examples.
 This is to guarantee the one second update interval for the other destinations.
+
+## MQTT output
+
+An MQTT server is accessed via WiFi using the Arduino library 'EspMQTTClient'
+and the output is published on a single topic once per minute.
+
+The payload is a JSON structure consisting of the fields:
+- "t_C": the temperature;
+- "vol_l": the volume in liters;
+- "vol_percent": the volume as percentage;
+- "low: the LOW indicator (true/false).
+
+Note: The MQTT output is more general than the earlier ThingSpeak output.
+If desired, it is possible at the MQTT server to forward the payload, after conversion, towards ThingSpeak.
 
 ## Testing
 

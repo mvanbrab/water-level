@@ -17,16 +17,15 @@
 #include <hd44780.h>                       // main hd44780 header
 #include <hd44780ioClass/hd44780_I2Cexp.h> // i2c expander i/o class header
 #include <Arduino_JSON.h>
-#include <ThingSpeak.h>
-#include <WiFi.h>
+#include <EspMQTTClient.h>
 #include "LCDbarGraph.h"
 // Create your own secrets.h (mine is not in the repository), based on secrets_template.h
 #include "secrets.h"
 
 // 1: debug output (general) on serial, 0: no debug output (general)
 #define DEBUG 0
-// 1: debug output (WiFi & ThingSpeak) on serial, 0: no debug output (WiFi & ThingSpeak)
-#define DEBUG_WIFI 1
+// 1: debug output (MQTT) on serial, 0: no debug output (MQTT)
+#define DEBUG_MQTT 1
 // 1: start by processing some fake input, 0: no fake input
 #define DEBUG_FAKE_INPUT 0
 
@@ -59,24 +58,34 @@ LCDbarGraph barGraph(lcd, LCD_BAR_X, LCD_BAR_Y, LCD_BAR_L, 0, 100);
 // The status of the backlight
 bool backlightOn;
 
-
-// WiFi
-char ssid[] = SECRET_SSID;   // your network SSID (name) 
-char pass[] = SECRET_PASS;   // your network password
-WiFiClient  client;
-enum WifiControlStatus {WCS_INITIAL, WCS_CONNECTING, WCS_CONNECTED}; 
-
-// ThingSpeak
-unsigned long myChannelNumber = SECRET_CH_ID;
-const char * myWriteAPIKey = SECRET_WRITE_APIKEY;
-
 // Timing - everything unsigned long, milliseconds
 #define INITIAL_SERIAL2_DELAY 1000ul
 #define INITIAL_TRIGGER_DELAY 15000ul
 #define TRIGGER_INTERVAL 1000ul
-#define WIFI_CONNECTION_DELAY 10000ul
-#define THINGSPEAK_INTERVAL 60000ul
+#define MQTT_INTERVAL 60000ul
 #define BUTTON_DEBOUNCE_DELAY 100ul
+
+// MQTT
+EspMQTTClient mqttClient(
+  SECRET_SSID,
+  SECRET_WIFI_PASS,
+  SECRET_MQTT_SERVER,     // MQTT Broker server ip
+  SECRET_MQTT_USER,       // Can be omitted if not needed
+  SECRET_MQTT_PASS,       // Can be omitted if not needed
+  "mvanbrab-waterlevel",  // Client name that uniquely identifies your device
+  SECRET_MQTT_PORT        // The MQTT port, default to 1883.
+);
+
+/*!
+ * This function is called once everything is connected (Wifi and MQTT)
+ * WARNING : YOU MUST IMPLEMENT IT IF YOU USE EspMQTTClient
+ */
+void onConnectionEstablished()
+{
+#if DEBUG_MQTT == 1
+  Serial.println("MQTT connected.");
+#endif
+}
 
 /*!
  * Arduino's setup function
@@ -92,9 +101,6 @@ void setup() {
   lcd.print("Initialising...");
   backlightOn = true;
 
-  WiFi.mode(WIFI_STA);
-  ThingSpeak.begin(client);
-
   // be patient with serial port 2:
   // wait until initialised and then flush rubbish input
   while (millis() - tSerial2 < INITIAL_SERIAL2_DELAY) {
@@ -103,12 +109,17 @@ void setup() {
   while (Serial2.available() > 0 ) {
     Serial2.read();
   }
+
+#if DEBUG_MQTT == 1
+  mqttClient.enableDebuggingMessages(); // Enable debugging messages sent to serial output
+#endif
 }
 
 /*!
  * Arduino's loop function
  */
 void loop() {
+  mqttClient.loop();
 #if DEBUG_FAKE_INPUT == 0
   handleTransmitter();
 #else
@@ -246,7 +257,7 @@ void consume(const char * inputString) {
 
   publishOnSerial(tDegreesCelcius, volumeLiter, volumePercent, lowBool);
   publishOnLCD(tDegreesCelcius, volumeLiter, volumePercent, lowBool);
-  publishOnThingSpeak(tDegreesCelcius, volumeLiter, volumePercent, lowBool);
+  publishOnMqtt(tDegreesCelcius, volumeLiter, volumePercent, lowBool);
 }
 
 /*!
@@ -327,116 +338,33 @@ void publishOnLCD(double tDegreesCelcius, double volumeLiter, double volumePerce
 }
 
 /*!
- * Publish the measurements to ThingSpeak
+ * Publish the measurements to MQTT
  *
- * Publishing frequency is restricted and the connection is controlled in here too.
+ * Publishing frequency is restricted.
  *
  * @param tDegreesCelcius temperature in degrees Celcius
  * @param volumeLiter volume in litres
  * @param volumePercent volume as a percentage
  * @param lowBool low indicator
  */
-void publishOnThingSpeak(double tDegreesCelcius, double volumeLiter, double volumePercent, bool lowBool) {
-  static WifiControlStatus wifiControlStatus = WCS_INITIAL;
-  static unsigned long tPrevConnecting;
+void publishOnMqtt(double tDegreesCelcius, double volumeLiter, double volumePercent, bool lowBool) {
   static unsigned long tPrevWriting;
   static bool first = true;
-  unsigned long tNowConnecting;
   unsigned long tNowWriting;
 
-  // non-blocking Wifi control
-  switch (wifiControlStatus) {
-    case WCS_INITIAL:
-      WiFi.begin(ssid, pass); // Connect to WPA/WPA2 network. Change this line if using open or WEP network
-      wifiControlStatus = WCS_CONNECTING;
-      tPrevConnecting = millis();
-#if DEBUG_WIFI == 1
-      Serial.printf("Wifi: attempting to connect to SSID: %s.", ssid);
-      Serial.println();
-#endif
-      return;
-    case WCS_CONNECTING:
-      if (WiFi.status() == WL_CONNECTED) {
-        wifiControlStatus = WCS_CONNECTED;
-#if DEBUG_WIFI == 1
-        Serial.println("Wifi: connected.");
-#endif
-      } else {
-        // retry if it takes too long
-        tNowConnecting = millis();
-        if (tNowConnecting - tPrevConnecting >= WIFI_CONNECTION_DELAY) {
-#if DEBUG_WIFI == 1
-          Serial.println("Wifi: connection timeout.");
-#endif
-          wifiControlStatus = WCS_INITIAL;
-        } else {
-#if DEBUG_WIFI == 1
-          Serial.println("Wifi: waiting for connection.");
-#endif
-        }
-        return;
-      }
-      break;
-    case WCS_CONNECTED:
-      if (WiFi.status() != WL_CONNECTED) {
-        wifiControlStatus = WCS_INITIAL;
-#if DEBUG_WIFI == 1
-        Serial.println("Wifi: connection lost.");
-#endif
-        return;
-      }
-      break;
-    default:
-      return;
-  }
-
-  // If we get here, WiFi is connected
   tNowWriting = millis();
-  if (first || (tNowWriting - tPrevWriting) >= THINGSPEAK_INTERVAL) {
-    // Multi-write to ThingSpeak.
-    int x;
-    x = ThingSpeak.setField(1, (float)volumeLiter);
-    if (x != 200) {
-#if DEBUG_WIFI == 1
-      Serial.printf("Problem updating volumeLiter: %d.", x);
-      Serial.println();
-#endif
-      return;
-    }
-    x = ThingSpeak.setField(2, (float)volumePercent);
-    if (x != 200) {
-#if DEBUG_WIFI == 1
-      Serial.printf("Problem updating volumePercent: %d.", x);
-      Serial.println();
-#endif
-      return;
-    }
-    x = ThingSpeak.setField(3, (float)tDegreesCelcius);
-    if (x != 200) {
-#if DEBUG_WIFI == 1
-      Serial.printf("Problem updating tDegreesCelcius: %d.", x);
-      Serial.println();
-#endif
-      return;
-    }
-    x = ThingSpeak.setField(4, lowBool ? 1 : 0);
-    if (x != 200) {
-#if DEBUG_WIFI == 1
-      Serial.printf("Problem updating LOW indication: %d.", x);
-      Serial.println();
-#endif
-      return;
-    }
-    x = ThingSpeak.writeFields(myChannelNumber, myWriteAPIKey);
-    if (x == 200) {
-#if DEBUG_WIFI == 1
-      Serial.printf("Fields written successfully to ThingSpeak at %ld.", tNowWriting);
-      Serial.println();
-#endif
-    } else {
-#if DEBUG_WIFI == 1
-      Serial.printf("Problem writing fields to ThingSpeak: %d.", x);
-      Serial.println();
+  if (first || (tNowWriting - tPrevWriting) >= MQTT_INTERVAL) {
+    JSONVar myObject;
+    myObject["t_C"] = tDegreesCelcius;
+    myObject["vol_l"] = volumeLiter;
+    myObject["vol_percent"] = volumePercent;
+    myObject["low"] = lowBool;
+    Serial.print("myObject.keys() = ");
+    Serial.println(myObject.keys());
+    String jsonString = JSON.stringify(myObject);
+    if (!mqttClient.publish("garden/waterlevel", jsonString)) {
+#if DEBUG_MQTT == 1
+      Serial.println("MQTT publishing failed.");
 #endif
       return;
     }

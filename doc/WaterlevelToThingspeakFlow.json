@@ -1,0 +1,183 @@
+[
+    {
+        "id": "1fb192c7.b13b0d",
+        "type": "tab",
+        "label": "Waterlevel",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "72e5bf5c.fd36e8",
+        "type": "mqtt in",
+        "z": "1fb192c7.b13b0d",
+        "name": "",
+        "topic": "garden/waterlevel",
+        "qos": "0",
+        "datatype": "json",
+        "broker": "bbdb0c05.5d0ad",
+        "x": 170,
+        "y": 80,
+        "wires": [
+            [
+                "f24d7ef.e5e318",
+                "b45b0c99.feb2c8"
+            ]
+        ]
+    },
+    {
+        "id": "f24d7ef.e5e318",
+        "type": "debug",
+        "z": "1fb192c7.b13b0d",
+        "name": "msgMQTT",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 530,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "b45b0c99.feb2c8",
+        "type": "function",
+        "z": "1fb192c7.b13b0d",
+        "name": "split topics",
+        "func": "var msg1 = {\n    payload: msg.payload.t_C,\n    topic: \"t_C\"\n};\nvar msg2 = {\n    payload: msg.payload.vol_l,\n    topic: \"vol_l\"\n};\nvar msg3 = {\n    payload: msg.payload.vol_percent,\n    topic : \"vol_percent\"\n};\nvar msg4 = {\n    payload: msg.payload.low ? 1 : 0,\n    topic : \"low\"\n};\n\nreturn [msg1, msg2, msg3, msg4];",
+        "outputs": 4,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 150,
+        "y": 180,
+        "wires": [
+            [
+                "ab230ffc.eaab8",
+                "dfabce0e.50ac38"
+            ],
+            [
+                "ab230ffc.eaab8",
+                "51694771.8066a"
+            ],
+            [
+                "ab230ffc.eaab8",
+                "6bc015db.99133c"
+            ],
+            [
+                "ab230ffc.eaab8",
+                "4ee3d316.7c8284"
+            ]
+        ]
+    },
+    {
+        "id": "ab230ffc.eaab8",
+        "type": "thingspeak42",
+        "z": "1fb192c7.b13b0d",
+        "name": "thingSpeak waterlevel",
+        "delay": "1",
+        "topic1": "vol_l",
+        "topic2": "vol_percent",
+        "topic3": "t_C",
+        "topic4": "low",
+        "topic5": "",
+        "topic6": "",
+        "topic7": "",
+        "topic8": "",
+        "endpoint": "https://thingspeak.com",
+        "x": 180,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "dfabce0e.50ac38",
+        "type": "debug",
+        "z": "1fb192c7.b13b0d",
+        "name": "msg1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 510,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "51694771.8066a",
+        "type": "debug",
+        "z": "1fb192c7.b13b0d",
+        "name": "msg2",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 510,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "6bc015db.99133c",
+        "type": "debug",
+        "z": "1fb192c7.b13b0d",
+        "name": "msg3",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 510,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "4ee3d316.7c8284",
+        "type": "debug",
+        "z": "1fb192c7.b13b0d",
+        "name": "msg4",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 510,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "bbdb0c05.5d0ad",
+        "type": "mqtt-broker",
+        "name": "rpi1",
+        "broker": "TODO",
+        "port": "1883",
+        "clientid": "",
+        "usetls": false,
+        "compatmode": false,
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": ""
+    }
+]

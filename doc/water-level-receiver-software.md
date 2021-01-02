@@ -7,11 +7,11 @@ Each "?" acts as a request for a new measurement to the connected transmitter.
 If all's well, the transmitter will reply with a JSON output as document in the [transmitter documentation](water-level-transmitter-software.md).
 
 The receiver will decode this JSON payload and publish it to several destinations.
-Currently, these are the supported destinations:
+These are the supported destinations:
 - the serial port accessible through the USB connection (at 115200 Baud);
 - a character-based LCD display using the hd44780 chip;
-- in earlier versions: a channel on https://thingspeak.com;
-- in later versions: an MQTT topic.
+- in earlier versions: a channel on https://thingspeak.com (now supported indirectly via MQTT and Node-RED);
+- in current versions: an MQTT topic.
 
 In addition, the program watches button input.
 Currently, there is only one button defined:
@@ -38,10 +38,12 @@ LCD output consist of:
 
 ## ThingSpeak output
 
-The ThingSpeak API is accessed via WiFi using the Arduino library 'ThingSpeak'
-and the output is directed to a specific channel, to be created by the user.
+### Earlier versions
 
-Output to the ThingSpeak channel is reduced to one write per minute.
+In earlier versions, the ThingSpeak API was accessed directly via WiFi using the Arduino library 'ThingSpeak'
+and the output was directed to a specific channel, to be created by the user.
+
+Output to the ThingSpeak channel was reduced to one write per minute.
 
 The output in the channel consists of:
 - field 1: the volume in liters;
@@ -56,11 +58,20 @@ For every successful write to ThingSpeak, the heartbeat indicator on the LCD out
 Note that in order to provide your personal secret values with respect to WiFi and ThingSpeak,
 you must create your own secrets.h file, based on the instructions available in secrets_example.h.
 
-### A note about the implementation of the ThingSpeak output
+#### A note about the implementation
 
 The WiFi is controlled using a state machine rather than the approach found in the WiFi
 and ThingSpeak examples, in order to avoid the 5 seconds blocking found in these examples.
 This is to guarantee the one second update interval for the other destinations.
+
+### Later versions
+
+In later versions, there is no more direct connection from the board to ThingSpeak.
+However, since the board is now publishing an MQTT topic, it is possible to subscribe to that topic with an external tool
+and forward the data to ThingSpeak from there.
+
+An example for [Node-RED](https://nodered.org/) is available for import [here](WaterlevelToThingspeakFlow.json).
+In addition to standard nodes, it depends on [ThingSpeak42](https://github.com/clough42/node-red-contrib-thingspeak42). 
 
 ## MQTT output
 
@@ -72,9 +83,6 @@ The payload is a JSON structure consisting of the fields:
 - "vol_l": the volume in liters;
 - "vol_percent": the volume as percentage;
 - "low: the LOW indicator (true/false).
-
-Note: The MQTT output is more general than the earlier ThingSpeak output.
-If desired, it is possible at the MQTT server to forward the payload, after conversion, towards ThingSpeak.
 
 ## Testing
 

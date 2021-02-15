@@ -1,0 +1,187 @@
+[
+    {
+        "id": "ad0bcd5e.e70218",
+        "type": "tab",
+        "label": "WaterlevelToInfluxdbFlow",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "4c98a315.8afd9c",
+        "type": "mqtt in",
+        "z": "ad0bcd5e.e70218",
+        "name": "",
+        "topic": "garden/waterlevel",
+        "qos": "0",
+        "datatype": "json",
+        "broker": "bbdb0c05.5d0ad",
+        "x": 160,
+        "y": 140,
+        "wires": [
+            [
+                "da1882cc.c0b1",
+                "6b247145.a6a3d8"
+            ]
+        ]
+    },
+    {
+        "id": "c7021d8e.97c2c",
+        "type": "inject",
+        "z": "ad0bcd5e.e70218",
+        "name": "tick on the hour",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "0 0-23 * * *",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "tick",
+        "payload": "",
+        "payloadType": "date",
+        "x": 170,
+        "y": 240,
+        "wires": [
+            [
+                "6b247145.a6a3d8"
+            ]
+        ]
+    },
+    {
+        "id": "98bd864c.5581c",
+        "type": "influxdb out",
+        "z": "ad0bcd5e.e70218",
+        "influxdb": "d296a374.550aa",
+        "name": "influxdb waterlevel",
+        "measurement": "waterlevel",
+        "precision": "h",
+        "retentionPolicy": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "organisation",
+        "bucket": "bucket",
+        "x": 900,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "da1882cc.c0b1",
+        "type": "debug",
+        "z": "ad0bcd5e.e70218",
+        "name": "msg in",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 160,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "6b247145.a6a3d8",
+        "type": "function",
+        "z": "ad0bcd5e.e70218",
+        "name": "accumulate V T",
+        "func": "function reset() {\n    context.set('n', 0);\n    context.set('sumV', 0);\n    context.set('sumT', 0)\n}\n\nif (context.get('n') === undefined) {\n    reset();\n}\n\nif (msg.topic == 'tick') {\n    n = context.get('n');\n    id = msg.payload.toString();\n    if (n != 0) {\n        msg = {\n            'payload': {\n                // round to 0 decimals\n                'vol_l': Math.round(context.get('sumV') / n),\n                // round to 2 decimal:\n                't_C': Math.round(100 * context.get('sumT') / n) / 100\n            },\n            'n': n\n        };\n        reset();\n        return msg;\n    } else {\n        return null;\n    }\n} else if (msg.topic == 'clear') {\n    reset();\n    return null;\n} else {\n    context.set('n', context.get('n') + 1);\n    context.set('sumV', context.get('sumV') + msg.payload.vol_l);\n    context.set('sumT', context.get('sumT') + msg.payload.t_C);\n    return null;\n}\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 410,
+        "y": 240,
+        "wires": [
+            [
+                "60c0dc81.9d512c",
+                "98bd864c.5581c"
+            ]
+        ]
+    },
+    {
+        "id": "60c0dc81.9d512c",
+        "type": "debug",
+        "z": "ad0bcd5e.e70218",
+        "name": "msg V T acc",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 400,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "1a438c68.f7df7c",
+        "type": "inject",
+        "z": "ad0bcd5e.e70218",
+        "name": "clear",
+        "props": [
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "clear",
+        "payloadType": "str",
+        "x": 140,
+        "y": 280,
+        "wires": [
+            [
+                "6b247145.a6a3d8"
+            ]
+        ]
+    },
+    {
+        "id": "bbdb0c05.5d0ad",
+        "type": "mqtt-broker",
+        "name": "rpi1",
+        "broker": "192.168.0.4",
+        "port": "1883",
+        "clientid": "",
+        "usetls": false,
+        "compatmode": false,
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": ""
+    },
+    {
+        "id": "d296a374.550aa",
+        "type": "influxdb",
+        "hostname": "127.0.0.1",
+        "port": "8086",
+        "protocol": "http",
+        "database": "db",
+        "name": "local influx (db)",
+        "usetls": false,
+        "tls": "",
+        "influxdbVersion": "1.x",
+        "url": "http://localhost:8086",
+        "rejectUnauthorized": true
+    }
+]

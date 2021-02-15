@@ -67,16 +67,12 @@ This is to guarantee the one second update interval for the other destinations.
 ### Later versions
 
 In later versions, there is no more direct connection from the board to ThingSpeak.
-However, since the board is now publishing an MQTT topic, it is possible to subscribe to that topic with an external tool
-and forward the data to ThingSpeak from there.
-
-An example for [Node-RED](https://nodered.org/) is available for import [here](WaterlevelToThingspeakFlow.json).
-In addition to standard nodes, it depends on [ThingSpeak42](https://github.com/clough42/node-red-contrib-thingspeak42). 
+However, since the board is now publishing an MQTT topic, ThingSpeak can be reached indirectly as described in MQTT output below.
 
 ## MQTT output
 
 An MQTT server is accessed via WiFi using the Arduino library 'EspMQTTClient'
-and the output is published on a single topic once per minute.
+and the output is published on a single topic "garden/waterlevel" once per minute.
 
 The payload is a JSON structure consisting of the fields:
 - "t_C": the temperature;
@@ -84,6 +80,36 @@ The payload is a JSON structure consisting of the fields:
 - "vol_percent": the volume as percentage;
 - "low: the LOW indicator (true/false).
 
+#### Possibilities with MQTT
+
+What follows is a non limiting list of examples.
+
+**Connect to ThingSpeak**
+
+Use an external tool to subscribe to the MQTT topic and forward the data to ThingSpeak from there.
+An example for [Node-RED](https://nodered.org/) is available for import [here](WaterlevelToThingspeakFlow.json).
+In addition to standard nodes, it depends on [ThingSpeak42](https://github.com/clough42/node-red-contrib-thingspeak42). 
+
+**Display data on Node-RED user interface elements**
+
+The Node-RED package node-red-dashboard has interesting nodes such as a **gauge**, allowing
+to display output as shown below.
+
+![thingspeak-output](nodered-ui-output.jpg)
+
+An example flow for this can be imported [here](WaterlevelToNodeRedUiFlow.json).
+
+**Export data to Influxdb for possible display using Grafana**
+
+The Node-RED contributed package node-red-contrib-influxdb has an **influxdb out** node, allowing to output data
+to [Influxdb](https://www.influxdata.com/products/influxdb/).
+
+These data can then be read by [Grafana](https://grafana.com/oss/), a great tool to visualise data.
+
+![thingspeak-output](grafana-output.jpg)
+
+An example flow can be imported [here](WaterlevelToInfluxdbFlow.json). It assumes local installations of Influxdb and Grafana.
+ 
 ## Testing
 
 Some DEBUG... preprocessor definitions are available to assist debugging the code.

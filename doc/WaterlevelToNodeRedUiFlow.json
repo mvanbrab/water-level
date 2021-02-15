@@ -1,0 +1,223 @@
+[
+    {
+        "id": "faaefc50.399668",
+        "type": "tab",
+        "label": "WaterlevelToNodeRedUiFlow",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "7fba7b5e.bdaa84",
+        "type": "mqtt in",
+        "z": "faaefc50.399668",
+        "name": "",
+        "topic": "garden/waterlevel",
+        "qos": "0",
+        "datatype": "json",
+        "broker": "bbdb0c05.5d0ad",
+        "x": 220,
+        "y": 180,
+        "wires": [
+            [
+                "9630950a.914178",
+                "96f9f451.a69388"
+            ]
+        ]
+    },
+    {
+        "id": "5c0307a6.2e0818",
+        "type": "debug",
+        "z": "faaefc50.399668",
+        "name": "msg T",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 680,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "2da486ac.a3bcda",
+        "type": "debug",
+        "z": "faaefc50.399668",
+        "name": "msg V",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 680,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "b36b084e.0273d8",
+        "type": "ui_gauge",
+        "z": "faaefc50.399668",
+        "name": "V",
+        "group": "75985db4.4f80c4",
+        "order": 1,
+        "width": "3",
+        "height": "3",
+        "gtype": "gage",
+        "title": "Volume",
+        "label": "liter",
+        "format": "{{msg.payload | number:0}}",
+        "min": 0,
+        "max": "3000",
+        "colors": [
+            "#ff0000",
+            "#ff8000",
+            "#008000"
+        ],
+        "seg1": "500",
+        "seg2": "600",
+        "x": 920,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "db0cf8cb.af2558",
+        "type": "ui_gauge",
+        "z": "faaefc50.399668",
+        "name": "T",
+        "group": "75985db4.4f80c4",
+        "order": 2,
+        "width": "3",
+        "height": "3",
+        "gtype": "gage",
+        "title": "Temperatuur",
+        "label": "°C",
+        "format": "{{msg.payload | number:2}}",
+        "min": "-10",
+        "max": "+40",
+        "colors": [
+            "#ff0000",
+            "#ff8000",
+            "#008000"
+        ],
+        "seg1": "0",
+        "seg2": "4",
+        "x": 920,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "9630950a.914178",
+        "type": "debug",
+        "z": "faaefc50.399668",
+        "name": "msg in",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 220,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "96f9f451.a69388",
+        "type": "split",
+        "z": "faaefc50.399668",
+        "name": "split in topics",
+        "splt": "\\n",
+        "spltType": "str",
+        "arraySplt": 1,
+        "arraySpltType": "len",
+        "stream": false,
+        "addname": "topic",
+        "x": 460,
+        "y": 180,
+        "wires": [
+            [
+                "7daab0fb.eae338"
+            ]
+        ]
+    },
+    {
+        "id": "7daab0fb.eae338",
+        "type": "switch",
+        "z": "faaefc50.399668",
+        "name": "switch V T",
+        "property": "topic",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "vol_l",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "t_C",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 680,
+        "y": 180,
+        "wires": [
+            [
+                "2da486ac.a3bcda",
+                "b36b084e.0273d8"
+            ],
+            [
+                "5c0307a6.2e0818",
+                "db0cf8cb.af2558"
+            ]
+        ]
+    },
+    {
+        "id": "bbdb0c05.5d0ad",
+        "type": "mqtt-broker",
+        "name": "rpi1",
+        "broker": "192.168.0.4",
+        "port": "1883",
+        "clientid": "",
+        "usetls": false,
+        "compatmode": false,
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": ""
+    },
+    {
+        "id": "75985db4.4f80c4",
+        "type": "ui_group",
+        "name": "Regenwater",
+        "tab": "44a136ff.98251",
+        "order": 2,
+        "disp": true,
+        "width": "6",
+        "collapse": true
+    },
+    {
+        "id": "44a136ff.98251",
+        "type": "ui_tab",
+        "name": "Metingen",
+        "icon": "dashboard",
+        "disabled": false,
+        "hidden": false
+    }
+]

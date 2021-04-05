@@ -7,6 +7,8 @@ This project actually has a predecessor. Enjoy reading about it in this [bit of 
 
 Please note: before enthusiastically starting to rebuild this project,
 check below to see if there are any [current issues](#current-issues).
+Currently there is a blocking issue, so the advise is to wait!
+
 # The transmitter
 The first piece of hardware is a transmitter.
 It measures the water level with a waterproof ultrasonic sensor and sends the measurement result as a JSON object via RS232 to a possibly connected receiver.

@@ -5,9 +5,10 @@ located under the ground.
 
 This project actually has a predecessor. Enjoy reading about it in this [bit of history](doc/history.md).
 
-Please note: before enthusiastically starting to rebuild this project,
-check below to see if there are any [current issues](#current-issues).
-Currently there is a blocking issue, so the advise is to wait!
+***Please note: if you plan to copy this project, please beware that there can be an issue with
+condensation on the sensor, if the location where you put the sensor is not well ventilated.
+I'm currently working on this. You can find all about it in the [current issues](#current-issues)***.
+
 
 # The transmitter
 The first piece of hardware is a transmitter.

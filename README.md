@@ -18,7 +18,7 @@ The positioning of this sensor in my project is described in the [physical setup
 
 Here are some [pictures](doc/pictures-transmitter.md) showing the transmitter in practice.
 
-In the folder **hardware/transmitter** you'll find the hardware design as a [KiCad](https://www.kicad-pcb.org/) project.
+In the folder **hardware/transmitter** you'll find the hardware design as a [KiCad](https://www.kicad.org/) project.
 Without Kicad installed, you can view
 - [the schematic diagram as .pdf](../master/hardware/transmitter.pdf);
 - [the copper layout of the printed circuit board](../master/hardware/transmitter_cu.pdf);
@@ -34,7 +34,7 @@ It requests output from the transmitter and publishes is to whatever destination
 
 Here are some [pictures](doc/pictures-receiver.md) showing the receiver in practice.
 
-In the folder **hardware/receiver** you'll find the hardware design as a [KiCad](https://www.kicad-pcb.org/) project.
+In the folder **hardware/receiver** you'll find the hardware design as a [KiCad](https://www.kicad.org/) project.
 Without Kicad installed, you can view
 - [the schematic diagram as .pdf](../master/hardware/receiver.pdf);
 - [the copper layout of the printed circuit board](../master/hardware/receiver_cu.pdf);

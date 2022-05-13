@@ -1,8 +1,8 @@
 # Pictures related to the transmitter
 
-*The pictures shown below give an impression of the original implementation.
+*Initial pictures shown below give an impression of the original implementation.
 Some modifications were needed to solve the condensation issue explained in [this lesson learned](ll02.md).
-So before trying to reconstruct, have a look at the solution found there!*
+Pictures including these modifications were copied at the bottom.*
 
 ## The printed circuit board
 
@@ -61,6 +61,26 @@ And finally, the end result.
 Lid closed, job done!
 
 ![lid](lid.jpg)
+
+## Updated pictures (after modification for the condensation issue)
+
+Top view after assembly, including the mounted sensor
+
+![attempt 3 inside](ll02-try3-1.jpg)
+
+A view at the bottom of the box
+
+![attempt 3 bottom](ll02-try3-2.jpg)
+
+The assembly, before closing
+
+![attempt 3 mounted, box open](ll02-try3-3.jpg)
+
+The assembly, closed
+
+![attempt 3 installed](ll02-try3-4.jpg)
+
+
 
 
 

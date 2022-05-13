@@ -1,5 +1,9 @@
 # Pictures related to the transmitter
 
+*The pictures shown below give an impression of the original implementation.
+Some modifications were needed to solve the condensation issue explained in [this lesson learned](ll02.md).
+So before trying to reconstruct, have a look at the solution found there!*
+
 ## The printed circuit board
 
 **Many thanks to my friend and colleague Dylan who was so kind to mill

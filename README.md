@@ -5,11 +5,6 @@ located under the ground.
 
 This project actually has a predecessor. Enjoy reading about it in this [bit of history](doc/history.md).
 
-***Please note: if you plan to copy this project, please beware that there can be an issue with
-condensation on the sensor, if the location where you put the sensor is not well ventilated.
-I'm currently working on this. You can find all about it in the [current issues](#current-issues)***.
-
-
 # The transmitter
 The first piece of hardware is a transmitter.
 It measures the water level with a waterproof ultrasonic sensor and sends the measurement result as a JSON object via RS232 to a possibly connected receiver.
@@ -60,8 +55,7 @@ Read more about this piece of software [here](doc/water-level-receiver-software.
 
 # Lessons learned
 [The temperature measurement](doc/ll01.md)
+[Condensation on the sensor](doc/ll02.md)
 
-# Current issues
-[Condensation on the sensor](doc/ci01.md)
 
 

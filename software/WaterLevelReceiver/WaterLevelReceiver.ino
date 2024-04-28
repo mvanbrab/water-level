@@ -6,7 +6,7 @@
  * This version publishes on:
  * - the serial port accessible through the USB connection
  * - a character-based LCD display using the hd44780 chip
- * - a channel on https://thingspeak.com
+ * - MQTT, in this case to a topic "garden/waterlevel channel on https://thingspeak.com
  *
  * Tested on an ESP32 DevKitC (Espressif).
  *

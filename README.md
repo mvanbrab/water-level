@@ -55,6 +55,7 @@ Read more about this piece of software [here](doc/water-level-receiver-software.
 
 # Lessons learned
 [The temperature measurement](doc/ll01.md)
+
 [Condensation on the sensor](doc/ll02.md)
 
 

@@ -6,18 +6,27 @@
  * This version publishes on:
  * - the serial port accessible through the USB connection
  * - a character-based LCD display using the hd44780 chip
- * - MQTT, in this case to a topic "garden/waterlevel channel on https://thingspeak.com
+ * - optional, only one option at a time: 
+ *   - MQTT, in this case to a topic "garden/waterlevel"
+ *   - HTTP, in this case on a webpage hosted locally
  *
  * Tested on an ESP32 DevKitC (Espressif).
  *
  * @author Martin Vanbrabant
  */
 
+// 1: activate option MQTT
+#define OPTION_MQTT 0
+// 1: activate option HTTP
+#define OPTION_HTTP 1
+
 #include <Wire.h>
 #include <hd44780.h>                       // main hd44780 header
 #include <hd44780ioClass/hd44780_I2Cexp.h> // i2c expander i/o class header
 #include <Arduino_JSON.h>
+#if OPTION_MQTT == 1
 #include <EspMQTTClient.h>
+#endif
 #include "LCDbarGraph.h"
 // Create your own secrets.h (mine is not in the repository), based on secrets_template.h
 #include "secrets.h"
@@ -26,6 +35,8 @@
 #define DEBUG 0
 // 1: debug output (MQTT) on serial, 0: no debug output (MQTT)
 #define DEBUG_MQTT 1
+// 1: debug output (HTTP) on serial, 0: no debug output (HTTP)
+#define DEBUG_HTTP 1
 // 1: start by processing some fake input, 0: no fake input
 #define DEBUG_FAKE_INPUT 0
 
@@ -65,7 +76,7 @@ bool backlightOn;
 #define MQTT_INTERVAL 60000ul
 #define BUTTON_DEBOUNCE_DELAY 100ul
 
-// MQTT
+#if OPTION_MQTT == 1
 EspMQTTClient mqttClient(
   SECRET_SSID,
   SECRET_WIFI_PASS,
@@ -75,7 +86,9 @@ EspMQTTClient mqttClient(
   "mvanbrab-waterlevel",  // Client name that uniquely identifies your device
   SECRET_MQTT_PORT        // The MQTT port, default to 1883.
 );
+#endif
 
+#if OPTION_MQTT == 1
 /*!
  * This function is called once everything is connected (Wifi and MQTT)
  * WARNING : YOU MUST IMPLEMENT IT IF YOU USE EspMQTTClient
@@ -86,6 +99,7 @@ void onConnectionEstablished()
   Serial.println("MQTT connected.");
 #endif
 }
+#endif
 
 /*!
  * Arduino's setup function
@@ -110,8 +124,10 @@ void setup() {
     Serial2.read();
   }
 
+#if OPTION_MQTT == 1
 #if DEBUG_MQTT == 1
   mqttClient.enableDebuggingMessages(); // Enable debugging messages sent to serial output
+#endif
 #endif
 }
 
@@ -119,7 +135,9 @@ void setup() {
  * Arduino's loop function
  */
 void loop() {
+#if OPTION_MQTT == 1
   mqttClient.loop();
+#endif
 #if DEBUG_FAKE_INPUT == 0
   handleTransmitter();
 #else
@@ -257,7 +275,9 @@ void consume(const char * inputString) {
 
   publishOnSerial(tDegreesCelcius, volumeLiter, volumePercent, lowBool);
   publishOnLCD(tDegreesCelcius, volumeLiter, volumePercent, lowBool);
+#if OPTION_MQTT == 1
   publishOnMqtt(tDegreesCelcius, volumeLiter, volumePercent, lowBool);
+#endif
 }
 
 /*!
@@ -337,6 +357,7 @@ void publishOnLCD(double tDegreesCelcius, double volumeLiter, double volumePerce
   first = false;
 }
 
+#if OPTION_MQTT == 1
 /*!
  * Publish the measurements to MQTT
  *
@@ -377,6 +398,7 @@ void publishOnMqtt(double tDegreesCelcius, double volumeLiter, double volumePerc
     first = false;
   }
 }
+#endif
 
 /*!
  * Check buttons and do appropriate actions

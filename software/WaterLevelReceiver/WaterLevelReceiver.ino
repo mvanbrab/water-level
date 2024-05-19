@@ -7,38 +7,43 @@
  * - the serial port accessible through the USB connection
  * - a character-based LCD display using the hd44780 chip
  * - optional, only one option at a time: 
- *   - MQTT, in this case to a topic "garden/waterlevel"
  *   - HTTP, in this case on a webpage hosted locally
+ *   - MQTT, in this case to a topic "garden/waterlevel"
  *
  * Tested on an ESP32 DevKitC (Espressif).
  *
  * @author Martin Vanbrabant
  */
 
-// 1: activate option MQTT
-#define OPTION_MQTT 0
-// 1: activate option HTTP
+// set maxium one of the following options to 1:
 #define OPTION_HTTP 1
+#define OPTION_MQTT 0
 
 #include <Wire.h>
 #include <hd44780.h>                       // main hd44780 header
 #include <hd44780ioClass/hd44780_I2Cexp.h> // i2c expander i/o class header
 #include <Arduino_JSON.h>
+
+#if OPTION_HTTP == 1
+#include <WiFi.h>
+#endif
+
 #if OPTION_MQTT == 1
 #include <EspMQTTClient.h>
 #endif
+
 #include "LCDbarGraph.h"
 // Create your own secrets.h (mine is not in the repository), based on secrets_template.h
 #include "secrets.h"
 
 // 1: debug output (general) on serial, 0: no debug output (general)
 #define DEBUG 0
-// 1: debug output (MQTT) on serial, 0: no debug output (MQTT)
-#define DEBUG_MQTT 1
 // 1: debug output (HTTP) on serial, 0: no debug output (HTTP)
 #define DEBUG_HTTP 1
+// 1: debug output (MQTT) on serial, 0: no debug output (MQTT)
+#define DEBUG_MQTT 1
 // 1: start by processing some fake input, 0: no fake input
-#define DEBUG_FAKE_INPUT 0
+#define DEBUG_FAKE_INPUT 1
 
 // IO pins
 #define BACKLIGHT_BUTTON_IOPIN 12
@@ -75,6 +80,20 @@ bool backlightOn;
 #define TRIGGER_INTERVAL 1000ul
 #define MQTT_INTERVAL 60000ul
 #define BUTTON_DEBOUNCE_DELAY 100ul
+
+#if OPTION_HTTP == 1
+WiFiServer server(80);
+#endif
+
+// The measurements to publish
+double measuredTDegreesCelcius; // temperature in degrees Celcius
+double measuredVolumeLiter;     // volume in litres
+double measuredVolumePercent;   // volume as a percentage
+bool   measuredLowBool;         // low indicator
+
+#if OPTION_HTTP == 1
+char htmlRepresentation[500];
+#endif
 
 #if OPTION_MQTT == 1
 EspMQTTClient mqttClient(
@@ -124,6 +143,30 @@ void setup() {
     Serial2.read();
   }
 
+#if OPTION_HTTP == 1
+#if DEBUG_HTTP == 1
+  Serial.print("Connecting to ");
+  Serial.println(SECRET_SSID);
+#endif
+  WiFi.begin(SECRET_SSID, SECRET_WIFI_PASS);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+#if DEBUG_HTTP == 1
+    Serial.print(".");
+#endif
+}
+
+#if DEBUG_HTTP == 1
+  Serial.println("");
+  Serial.println("WiFi connected.");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+#endif
+
+  server.begin();
+#endif
+
 #if OPTION_MQTT == 1
 #if DEBUG_MQTT == 1
   mqttClient.enableDebuggingMessages(); // Enable debugging messages sent to serial output
@@ -135,6 +178,9 @@ void setup() {
  * Arduino's loop function
  */
 void loop() {
+#if OPTION_HTTP == 1
+  handleWifi();
+#endif
 #if OPTION_MQTT == 1
   mqttClient.loop();
 #endif
@@ -145,6 +191,59 @@ void loop() {
 #endif
   handleButtons();
 }
+
+#if OPTION_HTTP == 1
+/*!
+ * Do the Wifi server work
+ */
+void handleWifi() {
+  WiFiClient client = server.available();   // listen for incoming clients
+
+  if (client) {                             // if you get a client,
+#if DEBUG_HTTP == 1
+    Serial.println("New Client.");          // print a message out the serial port
+#endif
+    String currentLine = "";                // make a String to hold incoming data from the client
+    while (client.connected()) {            // loop while the client's connected
+      if (client.available()) {             // if there's bytes to read from the client,
+        char c = client.read();             // read a byte, then
+#if DEBUG_HTTP == 1
+        Serial.write(c);                    // print it out the serial monitor
+#endif
+        if (c == '\n') {                    // if the byte is a newline character
+
+          // if the current line is blank, you got two newline characters in a row.
+          // that's the end of the client HTTP request, so send a response:
+          if (currentLine.length() == 0) {
+            // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
+            // and a content-type so the client knows what's coming, then a blank line:
+            client.println("HTTP/1.1 200 OK");
+            client.println("Content-type:text/html");
+            client.println();
+
+            // the content of the HTTP response follows the header:
+            client.print(htmlRepresentation);
+
+            // The HTTP response ends with another blank line:
+            client.println();
+            // break out of the while loop:
+            break;
+          } else {    // if you got a newline, then clear currentLine:
+            currentLine = "";
+          }
+        } else if (c != '\r') {  // if you got anything else but a carriage return character,
+          currentLine += c;      // add it to the end of the currentLine
+        }
+      }
+    }
+    // close the connection:
+    client.stop();
+#if DEBUG_HTTP == 1
+    Serial.println("Client Disconnected.");
+#endif
+  }
+}
+#endif
 
 /*!
  * Interact with the WaterLevelTransmitter
@@ -243,9 +342,6 @@ void handleFakeInput() {
  */
 void consume(const char * inputString) {
   static bool first = true;
-  static double tDegreesCelcius;
-  static double volumeLiter;
-  static double volumePercent;
   static double low;
 
 #if DEBUG == 1
@@ -265,18 +361,20 @@ void consume(const char * inputString) {
     return;
   }
 
-  smooth(tDegreesCelcius, (double)myObject["t_C"],           first);
-  smooth(volumeLiter,     (double)((int) myObject["vol_l"]), first);
-  smooth(volumePercent,   (double)myObject["vol_percent"],   first);
+  smooth(measuredTDegreesCelcius, (double)myObject["t_C"],           first);
+  smooth(measuredVolumeLiter,     (double)((int) myObject["vol_l"]), first);
+  smooth(measuredVolumePercent,   (double)myObject["vol_percent"],   first);
   smooth(low,             (double)((bool) myObject["low"]),  first);
   first = false;
+  measuredLowBool = (low >= 0.5);
 
-  bool lowBool = (low >= 0.5);
-
-  publishOnSerial(tDegreesCelcius, volumeLiter, volumePercent, lowBool);
-  publishOnLCD(tDegreesCelcius, volumeLiter, volumePercent, lowBool);
+  publishOnSerial();
+  publishOnLCD();
+#if OPTION_HTTP == 1
+  measurementsToHtml();
+#endif
 #if OPTION_MQTT == 1
-  publishOnMqtt(tDegreesCelcius, volumeLiter, volumePercent, lowBool);
+  publishOnMqtt();
 #endif
 }
 
@@ -297,29 +395,19 @@ void smooth(double& smoothed, double raw, bool first) {
 
 /*!
  * Publish the measurements to the standard serial port
- *
- * @param tDegreesCelcius temperature in degrees Celcius
- * @param volumeLiter volume in litres
- * @param volumePercent volume as a percentage
- * @param lowBool low indicator
  */
-void publishOnSerial(double tDegreesCelcius, double volumeLiter, double volumePercent, bool lowBool) {
+void publishOnSerial() {
   char buf[100];
-  sprintf(buf, "t = %lf °C", tDegreesCelcius);
+  sprintf(buf, "t = %lf °C", measuredTDegreesCelcius);
   Serial.println(buf);
-  sprintf(buf, "volume = %lf l (%lf %%)%s", volumeLiter, volumePercent, lowBool ? " LOW!" : "");
+  sprintf(buf, "volume = %lf l (%lf %%)%s", measuredVolumeLiter, measuredVolumePercent, measuredLowBool ? " LOW!" : "");
   Serial.println(buf);
 }
 
 /*!
  * Publish the measurements to the LCD display
- *
- * @param tDegreesCelcius temperature in degrees Celcius
- * @param volumeLiter volume in litres
- * @param volumePercent volume as a percentage
- * @param lowBool low indicator
  */
-void publishOnLCD(double tDegreesCelcius, double volumeLiter, double volumePercent, bool lowBool) {
+void publishOnLCD() {
   static bool first = true;
   static int prevVolumeLiterInt = -1;
   static int prevVolumePercentInt = -1;
@@ -327,7 +415,7 @@ void publishOnLCD(double tDegreesCelcius, double volumeLiter, double volumePerce
   static const char heartBeat[] = {'*', ' '};
   static uint8_t iHeartBeat = 0;
 
-  int volumePercentInt = volumePercent + 0.5;
+  int volumePercentInt = measuredVolumePercent + 0.5;
   if (volumePercentInt != prevVolumePercentInt) {
     lcd.setCursor(LCD_PERCENT_VALUE_X, LCD_PERCENT_VALUE_Y);
     lcd.printf("%3d", volumePercentInt);
@@ -337,19 +425,19 @@ void publishOnLCD(double tDegreesCelcius, double volumeLiter, double volumePerce
     barGraph.display(volumePercentInt);
     prevVolumePercentInt = volumePercentInt;
   }
-  if (lowBool != prevLowBool) {
+  if (measuredLowBool != prevLowBool) {
     lcd.setCursor(LCD_LOW_VALUE_X, LCD_LOW_VALUE_Y);
-    lcd.print(lowBool ? "LOW" : "   ");
-    prevLowBool = lowBool;
+    lcd.print(measuredLowBool ? "LOW" : "   ");
+    prevLowBool = measuredLowBool;
   }
-  int volumeLiterInt = volumeLiter + 0.5;
-  if (volumeLiterInt != prevVolumeLiterInt) {
+  int measuredVolumeLiterInt = measuredVolumeLiter + 0.5;
+  if (measuredVolumeLiterInt != prevVolumeLiterInt) {
     lcd.setCursor(LCD_L_VALUE_X, LCD_L_VALUE_Y);
-    lcd.printf("%5d", volumeLiterInt);
+    lcd.printf("%5d", measuredVolumeLiterInt);
     if (first) {
       lcd.print("l");
     }
-    prevVolumeLiterInt = volumeLiterInt;
+    prevVolumeLiterInt = measuredVolumeLiterInt;
   }
   lcd.setCursor(LCD_HEARTBEAT_X, LCD_HEARTBEAT_Y);
   lcd.write(heartBeat[iHeartBeat]);
@@ -357,18 +445,28 @@ void publishOnLCD(double tDegreesCelcius, double volumeLiter, double volumePerce
   first = false;
 }
 
+#if OPTION_HTTP == 1
+/*!
+ * Convert the measurements into an HTML fragment
+ */
+void measurementsToHtml() {
+  snprintf(htmlRepresentation, sizeof(htmlRepresentation),
+"<html>"
+"<p>temperature: %.1lf &deg;C</p>"
+"<p>volume: %.0lf l (%.0lf &percnt;)%s</p>"
+"</html>",
+  measuredTDegreesCelcius, measuredVolumeLiter, measuredVolumePercent, measuredLowBool ? " LOW!" : "");
+}
+#endif
+
 #if OPTION_MQTT == 1
 /*!
  * Publish the measurements to MQTT
  *
  * Publishing frequency is restricted.
  *
- * @param tDegreesCelcius temperature in degrees Celcius
- * @param volumeLiter volume in litres
- * @param volumePercent volume as a percentage
- * @param lowBool low indicator
  */
-void publishOnMqtt(double tDegreesCelcius, double volumeLiter, double volumePercent, bool lowBool) {
+void publishOnMqtt() {
   static unsigned long tPrevWriting;
   static bool first = true;
   unsigned long tNowWriting;
@@ -376,10 +474,10 @@ void publishOnMqtt(double tDegreesCelcius, double volumeLiter, double volumePerc
   tNowWriting = millis();
   if (first || (tNowWriting - tPrevWriting) >= MQTT_INTERVAL) {
     JSONVar myObject;
-    myObject["t_C"] = tDegreesCelcius;
-    myObject["vol_l"] = volumeLiter;
-    myObject["vol_percent"] = volumePercent;
-    myObject["low"] = lowBool;
+    myObject["t_C"] = measuredTDegreesCelcius;
+    myObject["vol_l"] = measuredVolumeLiter;
+    myObject["vol_percent"] = measuredVolumePercent;
+    myObject["low"] = measuredLowBool;
     Serial.print("myObject.keys() = ");
     Serial.println(myObject.keys());
     String jsonString = JSON.stringify(myObject);

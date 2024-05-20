@@ -6,12 +6,12 @@ Every second, the program sends a single "?" character to the Serial2 port, at 1
 Each "?" acts as a request for a new measurement to the connected transmitter.
 If all's well, the transmitter will reply with a JSON output as document in the [transmitter documentation](water-level-transmitter-software.md).
 
-The receiver will decode this JSON payload and publish it to several destinations.
-These are the supported destinations:
+The receiver will decode this JSON payload and can publish it to several destinations.
+The supported destinations, selectable at compile time:
 - the serial port accessible through the USB connection (at 115200 Baud);
 - a character-based LCD display using the hd44780 chip;
-- in earlier versions: a channel on https://thingspeak.com (now supported indirectly via MQTT and Node-RED);
-- in current versions: an MQTT topic.
+- a locally hosted webpage
+- MQTT, in this case to a topic "garden/waterlevel"
 
 In addition, the program watches button input.
 Currently, there is only one button defined:
@@ -36,38 +36,17 @@ LCD output consist of:
 
 ![lcd-output](lcd-output.jpg)
 
-## ThingSpeak output
+## HTTP output
 
-### Earlier versions
+HTTP output can consist of all information available in the serial port output.
 
-In earlier versions, the ThingSpeak API was accessed directly via WiFi using the Arduino library 'ThingSpeak'
-and the output was directed to a specific channel, to be created by the user.
+Currently, a simple HTML representation shows:
+- volume in liters, in a HTML meter element and as percentage (the LOW indicator is represented with red volume values) 
+- temperature in °C (red in case of frost)
 
-Output to the ThingSpeak channel was reduced to one write per minute.
+An example:
 
-The output in the channel consists of:
-- field 1: the volume in liters;
-- field 2: the volume as percentage;
-- field 3: the temperature;
-- field 4: the LOW indicator (0 = OK; 1 = LOW).
-
-![thingspeak-output](thingspeak-output.jpg)
-
-For every successful write to ThingSpeak, the heartbeat indicator on the LCD output is overwritten with a '.'.
-
-Note that in order to provide your personal secret values with respect to WiFi and ThingSpeak,
-you must create your own secrets.h file, based on the instructions available in secrets_example.h.
-
-#### A note about the implementation
-
-The WiFi is controlled using a state machine rather than the approach found in the WiFi
-and ThingSpeak examples, in order to avoid the 5 seconds blocking found in these examples.
-This is to guarantee the one second update interval for the other destinations.
-
-### Later versions
-
-In later versions, there is no more direct connection from the board to ThingSpeak.
-However, since the board is now publishing an MQTT topic, ThingSpeak can be reached indirectly as described in MQTT output below.
+![html-representation](html-repr.jpg)
 
 ## MQTT output
 
@@ -84,18 +63,12 @@ The payload is a JSON structure consisting of the fields:
 
 What follows is a non limiting list of examples.
 
-**Connect to ThingSpeak**
-
-Use an external tool to subscribe to the MQTT topic and forward the data to ThingSpeak from there.
-An example for [Node-RED](https://nodered.org/) is available for import [here](WaterlevelToThingspeakFlow.json).
-In addition to standard nodes, it depends on [ThingSpeak42](https://github.com/clough42/node-red-contrib-thingspeak42). 
-
 **Display data on Node-RED user interface elements**
 
 The Node-RED package node-red-dashboard has interesting nodes such as a **gauge**, allowing
 to display output as shown below.
 
-![thingspeak-output](nodered-ui-output.jpg)
+![nodered-output](nodered-ui-output.jpg)
 
 An example flow for this can be imported [here](WaterlevelToNodeRedUiFlow.json).
 
@@ -106,10 +79,29 @@ to [Influxdb](https://www.influxdata.com/products/influxdb/).
 
 These data can then be read by [Grafana](https://grafana.com/oss/), a great tool to visualise data.
 
-![thingspeak-output](grafana-output.jpg)
+![grafana-output](grafana-output.jpg)
 
 An example flow can be imported [here](WaterlevelToInfluxdbFlow.json). It assumes local installations of Influxdb and Grafana.
  
+**Connect to ThingSpeak**
+
+Use an external tool to subscribe to the MQTT topic and forward the data to ThingSpeak from there.
+An example for [Node-RED](https://nodered.org/) is available for import [here](WaterlevelToThingspeakFlow.json).
+In addition to standard nodes, it depends on [ThingSpeak42](https://github.com/clough42/node-red-contrib-thingspeak42). 
+
+For illustration, in earlier versions, the ThingSpeak API was accessed directly fom the board via WiFi using the Arduino library 'ThingSpeak'
+and the output was directed to a specific channel, to be created by the user.
+
+Output to the ThingSpeak channel was reduced to one write per minute.
+
+The output in the channel consisted of:
+- field 1: the volume in liters;
+- field 2: the volume as percentage;
+- field 3: the temperature;
+- field 4: the LOW indicator (0 = OK; 1 = LOW).
+
+![thingspeak-output](thingspeak-output.jpg)
+
 ## Testing
 
 Some DEBUG... preprocessor definitions are available to assist debugging the code.

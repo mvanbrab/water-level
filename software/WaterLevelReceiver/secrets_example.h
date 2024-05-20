@@ -9,3 +9,5 @@
 #define SECRET_MQTT_PORT 1883             // replace 1883 with your MQTT server port
 #define SECRET_MQTT_USER "myMqttUser"     // replace myMqttUser with your MQTT username
 #define SECRET_MQTT_PASS "myMqttPassword" // replace myMqttPassword with your MQTT password
+
+#define SECRET_HOSTNAME "myHostname"      // replace myHostname with the host name you define for this device

@@ -3,38 +3,44 @@
  *
  * Read out the WaterLevelTransmitter connected on Serial2 and publish the values.
  * 
- * This version publishes on:
+ * This version can publish on:
  * - the serial port accessible through the USB connection
  * - a character-based LCD display using the hd44780 chip
- * - optional, only one option at a time: 
- *   - HTTP, in this case on a webpage hosted locally
- *   - MQTT, in this case to a topic "garden/waterlevel"
+ * - a locally hosted webpage
+ * - MQTT, in this case to a topic "garden/waterlevel"
  *
  * Tested on an ESP32 DevKitC (Espressif).
  *
  * @author Martin Vanbrabant
  */
 
-// set maxium one of the following options to 1:
+// choose publish options here (note: do not combine OPTION_HTTP and OPTION_MQTT)
+#define OPTION_SERIAL 0
+#define OPTION_LCD 1
 #define OPTION_HTTP 1
 #define OPTION_MQTT 0
 
+// Create your own secrets.h (mine is not in the repository), based on secrets_template.h
+#include "secrets.h"
+
+#include <Arduino_JSON.h>
+
+#if OPTION_LCD == 1
 #include <Wire.h>
 #include <hd44780.h>                       // main hd44780 header
 #include <hd44780ioClass/hd44780_I2Cexp.h> // i2c expander i/o class header
-#include <Arduino_JSON.h>
+#include "LCDbarGraph.h"
+#endif
 
 #if OPTION_HTTP == 1
 #include <WiFi.h>
+#include <WiFiClient.h>
+#include <WebServer.h>
 #endif
 
 #if OPTION_MQTT == 1
 #include <EspMQTTClient.h>
 #endif
-
-#include "LCDbarGraph.h"
-// Create your own secrets.h (mine is not in the repository), based on secrets_template.h
-#include "secrets.h"
 
 // 1: debug output (general) on serial, 0: no debug output (general)
 #define DEBUG 0
@@ -43,7 +49,7 @@
 // 1: debug output (MQTT) on serial, 0: no debug output (MQTT)
 #define DEBUG_MQTT 1
 // 1: start by processing some fake input, 0: no fake input
-#define DEBUG_FAKE_INPUT 1
+#define DEBUG_FAKE_INPUT 0
 
 // IO pins
 #define BACKLIGHT_BUTTON_IOPIN 12
@@ -64,6 +70,7 @@
 #define LCD_HEARTBEAT_X 15
 #define LCD_HEARTBEAT_Y 1
 
+#if OPTION_LCD == 1
 // An LCD device is connected via I2C, the I2C address is known,
 // so using this constructor of this derived class.
 hd44780_I2Cexp lcd(LCD_ADDR);
@@ -73,6 +80,7 @@ LCDbarGraph barGraph(lcd, LCD_BAR_X, LCD_BAR_Y, LCD_BAR_L, 0, 100);
 
 // The status of the backlight
 bool backlightOn;
+#endif
 
 // Timing - everything unsigned long, milliseconds
 #define INITIAL_SERIAL2_DELAY 1000ul
@@ -81,18 +89,16 @@ bool backlightOn;
 #define MQTT_INTERVAL 60000ul
 #define BUTTON_DEBOUNCE_DELAY 100ul
 
-#if OPTION_HTTP == 1
-WiFiServer server(80);
-#endif
-
 // The measurements to publish
-double measuredTDegreesCelcius; // temperature in degrees Celcius
-double measuredVolumeLiter;     // volume in litres
-double measuredVolumePercent;   // volume as a percentage
-bool   measuredLowBool;         // low indicator
+double measuredTDegreesCelcius;   // temperature in degrees Celcius
+double measuredVolumeLiter;       // volume in litres
+int    measuredVolumeLiterInt;    // volume in litres, integer
+double measuredVolumePercent;     // volume as a percentage
+int    measuredVolumePercentInt;  // volume as a percentage, integer
+bool   measuredLowBool;           // low indicator
 
 #if OPTION_HTTP == 1
-char htmlRepresentation[500];
+WebServer server(80);
 #endif
 
 #if OPTION_MQTT == 1
@@ -102,9 +108,77 @@ EspMQTTClient mqttClient(
   SECRET_MQTT_SERVER,     // MQTT Broker server ip
   SECRET_MQTT_USER,       // Can be omitted if not needed
   SECRET_MQTT_PASS,       // Can be omitted if not needed
-  "mvanbrab-waterlevel",  // Client name that uniquely identifies your device
+  SECRET_HOSTNAME,        // Client name that uniquely identifies your device
   SECRET_MQTT_PORT        // The MQTT port, default to 1883.
 );
+#endif
+
+#if OPTION_HTTP == 1
+/*!
+ * Handles HTTP requests at "/"
+ */
+void handleRoot() {
+  static char htmlRepresentation[500];
+
+  // for snprintf_P, see https://cpp4arduino.com/2020/02/07/how-to-format-strings-without-the-string-class.html
+  snprintf_P(htmlRepresentation, sizeof(htmlRepresentation),
+PSTR("<!DOCTYPE html>"
+"<html>"
+"<head>"
+"<style>"
+"table {"
+"border: 1px solid black;"
+"}"
+"td {"
+"padding-left: 10px;"
+"padding-right: 50px;"
+"}"
+"#volm {"
+"width: 100%%;"
+"}"
+"#vol, #volp {"
+"%s"
+"}"
+"#temp {"
+"%s"
+"}"
+"</style>"
+"</head>"
+"<body>"
+"<h1>Waterlevel</h1>"
+"<table>"
+"<tr>"
+"<td><h2>Volume</h2></td>"
+"<td><h2 id=\"vol\">%d l</h2></td>"
+"</tr>"
+"<tr>"
+"<td><meter id=\"volm\" value=\"%d\" min=\"0\" low=\"%d\" max=\"100\"></meter></td>"
+"<td><h2 id=\"volp\">%d &percnt;</h2></td>"
+"</tr>"
+"<tr>"
+"<td><h2>Temperature</h2></td>"
+"<td><h2 id=\"temp\">%.1lf &deg;C</h2></td>"
+"</tr>"
+"</table>"
+"</body>"
+"</html>"),
+  (measuredLowBool ? "color: red;" : ""),
+  (measuredTDegreesCelcius < 0.0 ? "color: red;" : ""),
+  measuredVolumeLiterInt,
+  measuredVolumePercentInt,
+  (measuredLowBool ? measuredVolumePercentInt + 1 : 0),
+  measuredVolumePercentInt,
+  measuredTDegreesCelcius
+  );
+#if DEBUG_HTTP == 1
+    Serial.println(htmlRepresentation);
+#endif
+  server.send(200, "text/html", htmlRepresentation);
+}
+
+void handleNotFound() {
+  server.send(404, "text/plain", "Not found");
+}
 #endif
 
 #if OPTION_MQTT == 1
@@ -130,9 +204,11 @@ void setup() {
   Serial2.begin(115200);
   unsigned long tSerial2 = millis();
 
+#if OPTION_LCD == 1
   lcd.begin(LCD_COLS, LCD_ROWS);
   lcd.print("Initialising...");
   backlightOn = true;
+#endif
 
   // be patient with serial port 2:
   // wait until initialised and then flush rubbish input
@@ -148,6 +224,9 @@ void setup() {
   Serial.print("Connecting to ");
   Serial.println(SECRET_SSID);
 #endif
+  WiFi.setHostname(SECRET_HOSTNAME);
+  WiFi.mode(WIFI_STA);
+  
   WiFi.begin(SECRET_SSID, SECRET_WIFI_PASS);
 
   while (WiFi.status() != WL_CONNECTED) {
@@ -164,6 +243,8 @@ void setup() {
   Serial.println(WiFi.localIP());
 #endif
 
+  server.on("/", handleRoot);
+  server.onNotFound(handleNotFound);
   server.begin();
 #endif
 
@@ -179,7 +260,8 @@ void setup() {
  */
 void loop() {
 #if OPTION_HTTP == 1
-  handleWifi();
+   server.handleClient();
+   delay(2);
 #endif
 #if OPTION_MQTT == 1
   mqttClient.loop();
@@ -189,61 +271,10 @@ void loop() {
 #else
   handleFakeInput();
 #endif
+#if OPTION_LCD == 1
   handleButtons();
+#endif  
 }
-
-#if OPTION_HTTP == 1
-/*!
- * Do the Wifi server work
- */
-void handleWifi() {
-  WiFiClient client = server.available();   // listen for incoming clients
-
-  if (client) {                             // if you get a client,
-#if DEBUG_HTTP == 1
-    Serial.println("New Client.");          // print a message out the serial port
-#endif
-    String currentLine = "";                // make a String to hold incoming data from the client
-    while (client.connected()) {            // loop while the client's connected
-      if (client.available()) {             // if there's bytes to read from the client,
-        char c = client.read();             // read a byte, then
-#if DEBUG_HTTP == 1
-        Serial.write(c);                    // print it out the serial monitor
-#endif
-        if (c == '\n') {                    // if the byte is a newline character
-
-          // if the current line is blank, you got two newline characters in a row.
-          // that's the end of the client HTTP request, so send a response:
-          if (currentLine.length() == 0) {
-            // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
-            // and a content-type so the client knows what's coming, then a blank line:
-            client.println("HTTP/1.1 200 OK");
-            client.println("Content-type:text/html");
-            client.println();
-
-            // the content of the HTTP response follows the header:
-            client.print(htmlRepresentation);
-
-            // The HTTP response ends with another blank line:
-            client.println();
-            // break out of the while loop:
-            break;
-          } else {    // if you got a newline, then clear currentLine:
-            currentLine = "";
-          }
-        } else if (c != '\r') {  // if you got anything else but a carriage return character,
-          currentLine += c;      // add it to the end of the currentLine
-        }
-      }
-    }
-    // close the connection:
-    client.stop();
-#if DEBUG_HTTP == 1
-    Serial.println("Client Disconnected.");
-#endif
-  }
-}
-#endif
 
 /*!
  * Interact with the WaterLevelTransmitter
@@ -252,8 +283,7 @@ void handleTransmitter() {
   static bool first = true;
   static unsigned long tPrev = 0;
   static uint8_t iInputBuffer = 0;
-#define BUFFER_LENGTH 256
-  static char inputBuffer[BUFFER_LENGTH];
+  static char inputBuffer[256];
   unsigned long tNow;
 
   if (first) {
@@ -277,7 +307,7 @@ void handleTransmitter() {
         if (c == '{') {
           inputBuffer[iInputBuffer++] = c;
         }
-      } else if (iInputBuffer < BUFFER_LENGTH - 1) {
+      } else if (iInputBuffer < sizeof(inputBuffer) - 1) {
         inputBuffer[iInputBuffer++] = c;
         if (c == '}') {
           inputBuffer[iInputBuffer] = '\0';
@@ -315,7 +345,7 @@ void handleFakeInput() {
     "{\"t_C\":  21.00, \"distance_m\": 0.930, \"height_m\": 1.200, \"vol_l\": 2400, \"vol_percent\":  80.00, \"low\": false}",
     "{\"t_C\":  21.50, \"distance_m\": 0.780, \"height_m\": 1.350, \"vol_l\": 2700, \"vol_percent\":  90.00, \"low\": false}",
     "{\"t_C\":  21.78, \"distance_m\": 0.630, \"height_m\": 1.500, \"vol_l\": 3000, \"vol_percent\": 100.00, \"low\": false}"
-  };
+};
   static int i = 0;
   static int j = 0;
   static unsigned long tPrev = 0;
@@ -364,14 +394,17 @@ void consume(const char * inputString) {
   smooth(measuredTDegreesCelcius, (double)myObject["t_C"],           first);
   smooth(measuredVolumeLiter,     (double)((int) myObject["vol_l"]), first);
   smooth(measuredVolumePercent,   (double)myObject["vol_percent"],   first);
-  smooth(low,             (double)((bool) myObject["low"]),  first);
+  smooth(low,                     (double)((bool) myObject["low"]),  first);
   first = false;
+  measuredVolumeLiterInt = measuredVolumeLiter + 0.5;
+  measuredVolumePercentInt = measuredVolumePercent + 0.5;
   measuredLowBool = (low >= 0.5);
 
+#if OPTION_SERIAL == 1
   publishOnSerial();
+#endif
+#if OPTION_LCD == 1
   publishOnLCD();
-#if OPTION_HTTP == 1
-  measurementsToHtml();
 #endif
 #if OPTION_MQTT == 1
   publishOnMqtt();
@@ -393,6 +426,7 @@ void smooth(double& smoothed, double raw, bool first) {
   }
 }
 
+#if OPTION_SERIAL == 1
 /*!
  * Publish the measurements to the standard serial port
  */
@@ -403,7 +437,9 @@ void publishOnSerial() {
   sprintf(buf, "volume = %lf l (%lf %%)%s", measuredVolumeLiter, measuredVolumePercent, measuredLowBool ? " LOW!" : "");
   Serial.println(buf);
 }
+#endif
 
+#if OPTION_LCD == 1
 /*!
  * Publish the measurements to the LCD display
  */
@@ -415,22 +451,20 @@ void publishOnLCD() {
   static const char heartBeat[] = {'*', ' '};
   static uint8_t iHeartBeat = 0;
 
-  int volumePercentInt = measuredVolumePercent + 0.5;
-  if (volumePercentInt != prevVolumePercentInt) {
+  if (measuredVolumePercentInt != prevVolumePercentInt) {
     lcd.setCursor(LCD_PERCENT_VALUE_X, LCD_PERCENT_VALUE_Y);
-    lcd.printf("%3d", volumePercentInt);
+    lcd.printf("%3d", measuredVolumePercentInt);
     if (first) {
       lcd.print("%");
     }
-    barGraph.display(volumePercentInt);
-    prevVolumePercentInt = volumePercentInt;
+    barGraph.display(measuredVolumePercentInt);
+    prevVolumePercentInt = measuredVolumePercentInt;
   }
   if (measuredLowBool != prevLowBool) {
     lcd.setCursor(LCD_LOW_VALUE_X, LCD_LOW_VALUE_Y);
     lcd.print(measuredLowBool ? "LOW" : "   ");
     prevLowBool = measuredLowBool;
   }
-  int measuredVolumeLiterInt = measuredVolumeLiter + 0.5;
   if (measuredVolumeLiterInt != prevVolumeLiterInt) {
     lcd.setCursor(LCD_L_VALUE_X, LCD_L_VALUE_Y);
     lcd.printf("%5d", measuredVolumeLiterInt);
@@ -443,19 +477,6 @@ void publishOnLCD() {
   lcd.write(heartBeat[iHeartBeat]);
   iHeartBeat = (iHeartBeat + 1) % (sizeof(heartBeat) / sizeof(heartBeat[0]));
   first = false;
-}
-
-#if OPTION_HTTP == 1
-/*!
- * Convert the measurements into an HTML fragment
- */
-void measurementsToHtml() {
-  snprintf(htmlRepresentation, sizeof(htmlRepresentation),
-"<html>"
-"<p>temperature: %.1lf &deg;C</p>"
-"<p>volume: %.0lf l (%.0lf &percnt;)%s</p>"
-"</html>",
-  measuredTDegreesCelcius, measuredVolumeLiter, measuredVolumePercent, measuredLowBool ? " LOW!" : "");
 }
 #endif
 
@@ -489,15 +510,17 @@ void publishOnMqtt() {
     }
 
     // If we get here, the write was successful
+#if OPTION_LCD == 1
     lcd.setCursor(LCD_HEARTBEAT_X, LCD_HEARTBEAT_Y);
     lcd.write('.');
-    
+#endif    
     tPrevWriting = tNowWriting;
     first = false;
   }
 }
 #endif
 
+#if OPTION_LCD == 1
 /*!
  * Check buttons and do appropriate actions
  */
@@ -521,3 +544,4 @@ void handleButtons() {
     }
   }
 }
+#endif

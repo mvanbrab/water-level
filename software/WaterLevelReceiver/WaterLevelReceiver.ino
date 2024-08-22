@@ -11,6 +11,20 @@
  *
  * Tested on an ESP32 DevKitC (Espressif).
  *
+ * Last tested version:
+ * - Build on Arduino IDE 2.3.2
+ * - With the publish options as shown in the source below
+ * - Using esp32 by Espressif Systems board manager 3.0.3
+ * - With libraries (copied from verbose compile output)
+ *   Using library Arduino_JSON at version 0.2.0 in folder: C:\Users\marti\Documents\Arduino\libraries\Arduino_JSON 
+ *   Using library Wire at version 3.0.3 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.3\libraries\Wire 
+ *   Using library hd44780 at version 1.3.2 in folder: C:\Users\marti\Documents\Arduino\libraries\hd44780 
+ *   Using library WiFi at version 3.0.3 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.3\libraries\WiFi 
+ *   Using library Networking at version 3.0.3 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.3\libraries\Network 
+ *   Using library WebServer at version 3.0.3 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.3\libraries\WebServer 
+ *   Using library FS at version 3.0.3 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.3\libraries\FS 
+ * - Note: publish option MQTT does not compile in the given environment (https://github.com/plapointe6/EspMQTTClient 1.11.1 or later does not compile)
+ *
  * @author Martin Vanbrabant
  */
 
@@ -201,6 +215,7 @@ void setup() {
   pinMode(BACKLIGHT_BUTTON_IOPIN, INPUT_PULLUP);
 
   Serial.begin(115200);
+  Serial2.setPins(16, 17); // used to be default, now needed for board manager v3, see https://docs.espressif.com/projects/arduino-esp32/en/latest/migration_guides/2.x_to_3.0.html
   Serial2.begin(115200);
   unsigned long tSerial2 = millis();
 

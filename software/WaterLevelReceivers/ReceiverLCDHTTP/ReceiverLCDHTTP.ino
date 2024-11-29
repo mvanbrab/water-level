@@ -1,5 +1,5 @@
 /*!
- * @file WaterLevelReceiver.ino
+ * @file RecieverLCDHTTP.ino
  *
  * Read out the WaterLevelTransmitter connected on Serial2 and publish the values on:
  * - a character-based LCD display using the hd44780 chip

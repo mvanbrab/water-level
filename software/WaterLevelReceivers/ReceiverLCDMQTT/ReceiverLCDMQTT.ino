@@ -1,5 +1,5 @@
 /*!
- * @file WaterLevelReceiver.ino
+ * @file RecieverLCDMQTT.ino
  *
  * Read out the WaterLevelTransmitter connected on Serial2 and publish the values on:
  * - a character-based LCD display using the hd44780 chip
@@ -11,43 +11,48 @@
  * - Build on Arduino IDE 2.3.3
  * - Using esp32 by Espressif Systems board manager 3.0.7, selected board: ESP32 Dev Module
  * - With libraries (copied from verbose compile output)
- *   TODO - not working for the moment - library compatibility issue???
+ *   Using library Arduino_JSON at version 0.2.0 in folder: C:\Users\marti\Documents\Arduino\libraries\Arduino_JSON 
+ *   Using library Wire at version 3.0.7 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.7\libraries\Wire 
+ *   Using library hd44780 at version 1.3.2 in folder: C:\Users\marti\Documents\Arduino\libraries\hd44780 
+ *   Using library EspMQTTClient at version 1.13.3 in folder: C:\Users\marti\Documents\Arduino\libraries\EspMQTTClient 
+ *   Using library ArduinoOTA at version 3.0.7 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.7\libraries\ArduinoOTA 
+ *   Using library Networking at version 3.0.7 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.7\libraries\Network 
+ *   Using library Update at version 3.0.7 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.7\libraries\Update 
+ *   Using library PubSubClient at version 2.8 in folder: C:\Users\marti\Documents\Arduino\libraries\PubSubClient 
+ *   Using library WiFi at version 3.0.7 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.7\libraries\WiFi 
+ *   Using library WebServer at version 3.0.7 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.7\libraries\WebServer 
+ *   Using library FS at version 3.0.7 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.7\libraries\FS 
+ *   Using library ESPmDNS at version 3.0.7 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.7\libraries\ESPmDNS 
+ *
+ * About library EspMQTTClient latest version (3.13.3) by Patrick Lapointe:
+ *   It contains a compatibility issue w.r.t. Espressif Systems board manager 3.x
+ *   Solution according to https://forum.arduino.cc/t/broken-dependencies/1266624/10 is working:
+ *     Open c:\Users\<you>\Documents\Arduino\libraries\EspMQTTClient\src\EspMQTTClient.h
+ *     Change this:
+ *       #else // for ESP32
+ *         #include <WiFiClient.h>
+ *     into this:
+ *       #else // for ESP32
+ *         #include <WiFi.h>
+ *         #include <WiFiClient.h>
  *
  * @author Martin Vanbrabant
  */
-
-// choose publish options here (note: do not combine OPTION_HTTP and OPTION_MQTT)
-#define OPTION_SERIAL 0
-#define OPTION_LCD 1
-#define OPTION_HTTP 1
-#define OPTION_MQTT 0
 
 // Create your own secrets.h (mine is not in the repository), based on secrets_template.h
 #include "secrets.h"
 
 #include <Arduino_JSON.h>
 
-#if OPTION_LCD == 1
 #include <Wire.h>
 #include <hd44780.h>                       // main hd44780 header
 #include <hd44780ioClass/hd44780_I2Cexp.h> // i2c expander i/o class header
 #include "LCDbarGraph.h"
-#endif
 
-#if OPTION_HTTP == 1
-#include <WiFi.h>
-#include <WiFiClient.h>
-#include <WebServer.h>
-#endif
-
-#if OPTION_MQTT == 1
 #include <EspMQTTClient.h>
-#endif
 
 // 1: debug output (general) on serial, 0: no debug output (general)
 #define DEBUG 0
-// 1: debug output (HTTP) on serial, 0: no debug output (HTTP)
-#define DEBUG_HTTP 1
 // 1: debug output (MQTT) on serial, 0: no debug output (MQTT)
 #define DEBUG_MQTT 1
 // 1: start by processing some fake input, 0: no fake input
@@ -72,7 +77,6 @@
 #define LCD_HEARTBEAT_X 15
 #define LCD_HEARTBEAT_Y 1
 
-#if OPTION_LCD == 1
 // An LCD device is connected via I2C, the I2C address is known,
 // so using this constructor of this derived class.
 hd44780_I2Cexp lcd(LCD_ADDR);
@@ -82,7 +86,6 @@ LCDbarGraph barGraph(lcd, LCD_BAR_X, LCD_BAR_Y, LCD_BAR_L, 0, 100);
 
 // The status of the backlight
 bool backlightOn;
-#endif
 
 // Timing - everything unsigned long, milliseconds
 #define INITIAL_SERIAL2_DELAY 1000ul
@@ -99,11 +102,6 @@ double measuredVolumePercent;     // volume as a percentage
 int    measuredVolumePercentInt;  // volume as a percentage, integer
 bool   measuredLowBool;           // low indicator
 
-#if OPTION_HTTP == 1
-WebServer server(80);
-#endif
-
-#if OPTION_MQTT == 1
 EspMQTTClient mqttClient(
   SECRET_SSID,
   SECRET_WIFI_PASS,
@@ -113,88 +111,20 @@ EspMQTTClient mqttClient(
   SECRET_HOSTNAME,        // Client name that uniquely identifies your device
   SECRET_MQTT_PORT        // The MQTT port, default to 1883.
 );
-#endif
 
-#if OPTION_HTTP == 1
-/*!
- * Handles HTTP requests at "/"
- */
-void handleRoot() {
-  static char htmlRepresentation[500];
+bool connected = false;
 
-  // for snprintf_P, see https://cpp4arduino.com/2020/02/07/how-to-format-strings-without-the-string-class.html
-  snprintf_P(htmlRepresentation, sizeof(htmlRepresentation),
-PSTR("<!DOCTYPE html>"
-"<html>"
-"<head>"
-"<style>"
-"table {"
-"border: 1px solid black;"
-"}"
-"td {"
-"padding-left: 10px;"
-"padding-right: 50px;"
-"}"
-"#volm {"
-"width: 100%%;"
-"}"
-"#vol, #volp {"
-"%s"
-"}"
-"#temp {"
-"%s"
-"}"
-"</style>"
-"</head>"
-"<body>"
-"<h1>Waterlevel</h1>"
-"<table>"
-"<tr>"
-"<td><h2>Volume</h2></td>"
-"<td><h2 id=\"vol\">%d l</h2></td>"
-"</tr>"
-"<tr>"
-"<td><meter id=\"volm\" value=\"%d\" min=\"0\" low=\"%d\" max=\"100\"></meter></td>"
-"<td><h2 id=\"volp\">%d &percnt;</h2></td>"
-"</tr>"
-"<tr>"
-"<td><h2>Temperature</h2></td>"
-"<td><h2 id=\"temp\">%.1lf &deg;C</h2></td>"
-"</tr>"
-"</table>"
-"</body>"
-"</html>"),
-  (measuredLowBool ? "color: red;" : ""),
-  (measuredTDegreesCelcius < 0.0 ? "color: red;" : ""),
-  measuredVolumeLiterInt,
-  measuredVolumePercentInt,
-  (measuredLowBool ? measuredVolumePercentInt + 1 : 0),
-  measuredVolumePercentInt,
-  measuredTDegreesCelcius
-  );
-#if DEBUG_HTTP == 1
-    Serial.println(htmlRepresentation);
-#endif
-  server.send(200, "text/html", htmlRepresentation);
-}
-
-void handleNotFound() {
-  server.send(404, "text/plain", "Not found");
-}
-#endif
-
-#if OPTION_MQTT == 1
 /*!
  * This function is called once everything is connected (Wifi and MQTT)
  * WARNING : YOU MUST IMPLEMENT IT IF YOU USE EspMQTTClient
  */
 void onConnectionEstablished()
 {
-#if DEBUG_MQTT == 1
+ #if DEBUG_MQTT == 1
   Serial.println("MQTT connected.");
 #endif
+  connected = true;
 }
-#endif
 
 /*!
  * Arduino's setup function
@@ -207,11 +137,9 @@ void setup() {
   Serial2.begin(115200);
   unsigned long tSerial2 = millis();
 
-#if OPTION_LCD == 1
   lcd.begin(LCD_COLS, LCD_ROWS);
   lcd.print("Initialising...");
   backlightOn = true;
-#endif
 
   // be patient with serial port 2:
   // wait until initialised and then flush rubbish input
@@ -222,39 +150,8 @@ void setup() {
     Serial2.read();
   }
 
-#if OPTION_HTTP == 1
-#if DEBUG_HTTP == 1
-  Serial.print("Connecting to ");
-  Serial.println(SECRET_SSID);
-#endif
-  WiFi.setHostname(SECRET_HOSTNAME);
-  WiFi.mode(WIFI_STA);
-  
-  WiFi.begin(SECRET_SSID, SECRET_WIFI_PASS);
-
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-#if DEBUG_HTTP == 1
-    Serial.print(".");
-#endif
-}
-
-#if DEBUG_HTTP == 1
-  Serial.println("");
-  Serial.println("WiFi connected.");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
-#endif
-
-  server.on("/", handleRoot);
-  server.onNotFound(handleNotFound);
-  server.begin();
-#endif
-
-#if OPTION_MQTT == 1
 #if DEBUG_MQTT == 1
   mqttClient.enableDebuggingMessages(); // Enable debugging messages sent to serial output
-#endif
 #endif
 }
 
@@ -262,21 +159,13 @@ void setup() {
  * Arduino's loop function
  */
 void loop() {
-#if OPTION_HTTP == 1
-   server.handleClient();
-   delay(2);
-#endif
-#if OPTION_MQTT == 1
   mqttClient.loop();
-#endif
 #if DEBUG_FAKE_INPUT == 0
   handleTransmitter();
 #else
   handleFakeInput();
 #endif
-#if OPTION_LCD == 1
   handleButtons();
-#endif  
 }
 
 /*!
@@ -403,15 +292,8 @@ void consume(const char * inputString) {
   measuredVolumePercentInt = measuredVolumePercent + 0.5;
   measuredLowBool = (low >= 0.5);
 
-#if OPTION_SERIAL == 1
-  publishOnSerial();
-#endif
-#if OPTION_LCD == 1
   publishOnLCD();
-#endif
-#if OPTION_MQTT == 1
   publishOnMqtt();
-#endif
 }
 
 /*!
@@ -429,20 +311,6 @@ void smooth(double& smoothed, double raw, bool first) {
   }
 }
 
-#if OPTION_SERIAL == 1
-/*!
- * Publish the measurements to the standard serial port
- */
-void publishOnSerial() {
-  char buf[100];
-  sprintf(buf, "t = %lf °C", measuredTDegreesCelcius);
-  Serial.println(buf);
-  sprintf(buf, "volume = %lf l (%lf %%)%s", measuredVolumeLiter, measuredVolumePercent, measuredLowBool ? " LOW!" : "");
-  Serial.println(buf);
-}
-#endif
-
-#if OPTION_LCD == 1
 /*!
  * Publish the measurements to the LCD display
  */
@@ -481,9 +349,7 @@ void publishOnLCD() {
   iHeartBeat = (iHeartBeat + 1) % (sizeof(heartBeat) / sizeof(heartBeat[0]));
   first = false;
 }
-#endif
 
-#if OPTION_MQTT == 1
 /*!
  * Publish the measurements to MQTT
  *
@@ -495,6 +361,12 @@ void publishOnMqtt() {
   static bool first = true;
   unsigned long tNowWriting;
 
+  if (!connected) {
+#if DEBUG_MQTT == 1
+    Serial.println("MQTT not yet connected.");
+#endif
+    return;
+  }
   tNowWriting = millis();
   if (first || (tNowWriting - tPrevWriting) >= MQTT_INTERVAL) {
     JSONVar myObject;
@@ -502,8 +374,6 @@ void publishOnMqtt() {
     myObject["vol_l"] = measuredVolumeLiter;
     myObject["vol_percent"] = measuredVolumePercent;
     myObject["low"] = measuredLowBool;
-    Serial.print("myObject.keys() = ");
-    Serial.println(myObject.keys());
     String jsonString = JSON.stringify(myObject);
     if (!mqttClient.publish("garden/waterlevel", jsonString)) {
 #if DEBUG_MQTT == 1
@@ -513,17 +383,13 @@ void publishOnMqtt() {
     }
 
     // If we get here, the write was successful
-#if OPTION_LCD == 1
     lcd.setCursor(LCD_HEARTBEAT_X, LCD_HEARTBEAT_Y);
     lcd.write('.');
-#endif    
     tPrevWriting = tNowWriting;
     first = false;
   }
 }
-#endif
 
-#if OPTION_LCD == 1
 /*!
  * Check buttons and do appropriate actions
  */
@@ -547,4 +413,3 @@ void handleButtons() {
     }
   }
 }
-#endif

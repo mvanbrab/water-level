@@ -72,43 +72,15 @@ What follows is a non limiting list of examples.
 
 #### Display data on Node-RED user interface elements
 
-The Node-RED package node-red-dashboard has interesting nodes such as a **gauge**, allowing
+The Node-RED package `node-red-dashboard` has interesting nodes such as a **gauge**, allowing
 to display output as shown below.
-
-![nodered-output](nodered-ui-output.jpg)
-
-An example flow for this can be imported [here](WaterlevelToNodeRedUiFlow.json).
 
 #### Export data to Influxdb for possible display using Grafana
 
-The Node-RED contributed package node-red-contrib-influxdb has an **influxdb out** node, allowing to output data
+The Node-RED contributed package `node-red-contrib-influxdb` has an **influxdb out** node, allowing to output data
 to [Influxdb](https://www.influxdata.com/products/influxdb/).
 
 These data can then be read by [Grafana](https://grafana.com/oss/), a great tool to visualise data.
-
-![grafana-output](grafana-output.jpg)
-
-An example flow can be imported [here](WaterlevelToInfluxdbFlow.json). It assumes local installations of Influxdb and Grafana.
-
-#### Connect to ThingSpeak
-
-Use an external tool to subscribe to the MQTT topic and forward the data to ThingSpeak from there.
-An example for [Node-RED](https://nodered.org/) is available for import [here](WaterlevelToThingspeakFlow.json).
-In addition to standard nodes, it depends on [ThingSpeak42](https://github.com/clough42/node-red-contrib-thingspeak42). 
-
-For illustration, in earlier versions, the ThingSpeak API was accessed directly fom the board via WiFi using the Arduino library 'ThingSpeak'
-and the output was directed to a specific channel, to be created by the user.
-
-Output to the ThingSpeak channel was reduced to one write per minute.
-
-The output in the channel consisted of:
-
-- field 1: the volume in liters;
-- field 2: the volume as percentage;
-- field 3: the temperature;
-- field 4: the LOW indicator (0 = OK; 1 = LOW).
-
-![thingspeak-output](thingspeak-output.jpg)
 
 ## Testing
 

@@ -41,7 +41,7 @@ About the receiver hardware:
 - the processor board (chosen because of its WiFi connectivity) is a [ESP32 DevKitC](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/hw-reference/esp32/get-started-devkitc.html)
  (with ESP32-WROOM-32D module).
 
-The folder **software/WaterLevelReceiver** is an [Arduino](https://www.arduino.cc/) sketch, containing the software of the receiver part of the project.
+The folder **software/WaterLevelReceivers** is contains a set of [Arduino](https://www.arduino.cc/) sketches, each containing a different software solution for the receiver part of the project.
 
 Read more about this piece of software [here](doc/water-level-receiver-software.md).
 

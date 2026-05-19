@@ -96,6 +96,7 @@ bool backlightOn;
 
 // The measurements to publish
 double measuredTDegreesCelcius;   // temperature in degrees Celcius
+double measuredTDegreesCelcius1;  // temperature in degrees Celcius, rounded to one digit after the decimal point
 double measuredVolumeLiter;       // volume in litres
 int    measuredVolumeLiterInt;    // volume in litres, integer
 double measuredVolumePercent;     // volume as a percentage
@@ -288,6 +289,7 @@ void consume(const char * inputString) {
   smooth(measuredVolumePercent,   (double)myObject["vol_percent"],   first);
   smooth(low,                     (double)((bool) myObject["low"]),  first);
   first = false;
+  measuredTDegreesCelcius1 = round(measuredTDegreesCelcius * 10.0) / 10.0;
   measuredVolumeLiterInt = measuredVolumeLiter + 0.5;
   measuredVolumePercentInt = measuredVolumePercent + 0.5;
   measuredLowBool = (low >= 0.5);
@@ -370,9 +372,9 @@ void publishOnMqtt() {
   tNowWriting = millis();
   if (first || (tNowWriting - tPrevWriting) >= MQTT_INTERVAL) {
     JSONVar myObject;
-    myObject["t_C"] = measuredTDegreesCelcius;
-    myObject["vol_l"] = measuredVolumeLiter;
-    myObject["vol_percent"] = measuredVolumePercent;
+    myObject["t_C"] = measuredTDegreesCelcius1;
+    myObject["vol_l"] = measuredVolumeLiterInt;
+    myObject["vol_percent"] = measuredVolumePercentInt;
     myObject["low"] = measuredLowBool;
     String jsonString = JSON.stringify(myObject);
     if (!mqttClient.publish("garden/waterlevel", jsonString)) {

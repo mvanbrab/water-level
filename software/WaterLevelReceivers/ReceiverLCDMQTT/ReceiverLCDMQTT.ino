@@ -7,7 +7,7 @@
  *
  * Tested on an ESP32 DevKitC (Espressif).
  *
- * Last tested version:
+ * Previous tested version:
  * - Build on Arduino IDE 2.3.3
  * - Using esp32 by Espressif Systems board manager 3.0.7, selected board: ESP32 Dev Module
  * - With libraries (copied from verbose compile output)
@@ -24,7 +24,7 @@
  *   Using library FS at version 3.0.7 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.7\libraries\FS 
  *   Using library ESPmDNS at version 3.0.7 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.7\libraries\ESPmDNS 
  *
- * About library EspMQTTClient latest version (3.13.3) by Patrick Lapointe:
+ * About library EspMQTTClient latest version (1.13.3) by Patrick Lapointe:
  *   It contains a compatibility issue w.r.t. Espressif Systems board manager 3.x
  *   Solution according to https://forum.arduino.cc/t/broken-dependencies/1266624/10 is working:
  *     Open c:\Users\<you>\Documents\Arduino\libraries\EspMQTTClient\src\EspMQTTClient.h
@@ -35,6 +35,24 @@
  *       #else // for ESP32
  *         #include <WiFi.h>
  *         #include <WiFiClient.h>
+ *
+ * Latest tested version:
+ * - Build on Arduino IDE 2.3.9
+ * - Using esp32 by Espressif Systems board manager 3.3.9, selected board: ESP32 Dev Module
+ * - With libraries (copied from verbose compile output)
+ *   Using library Arduino_JSON at version 0.2.0 in folder: C:\Users\marti\Documents\Arduino\libraries\Arduino_JSON 
+ *   Using library Wire at version 3.3.9 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.9\libraries\Wire 
+ *   Using library hd44780 at version 1.3.2 in folder: C:\Users\marti\Documents\Arduino\libraries\hd44780 
+ *   Using library EspMQTTClient at version 1.13.3 in folder: C:\Users\marti\Documents\Arduino\libraries\EspMQTTClient 
+ *   Using library ArduinoOTA at version 3.3.9 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.9\libraries\ArduinoOTA 
+ *   Using library Networking at version 3.3.9 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.9\libraries\Network 
+ *   Using library Update at version 3.3.9 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.9\libraries\Update 
+ *   Using library PubSubClient at version 2.8 in folder: C:\Users\marti\Documents\Arduino\libraries\PubSubClient 
+ *   Using library WiFi at version 3.3.9 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.9\libraries\WiFi 
+ *   Using library WebServer at version 3.3.9 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.9\libraries\WebServer 
+ *   Using library FS at version 3.3.9 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.9\libraries\FS 
+ *   Using library ESPmDNS at version 3.3.9 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.9\libraries\ESPmDNS 
+ *   Using library Hash at version 3.3.9 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.9\libraries\Hash  *   Using library Arduino_JSON at version 0.2.0 in folder: C:\Users\marti\Documents\Arduino\libraries\Arduino_JSON 
  *
  * @author Martin Vanbrabant
  */

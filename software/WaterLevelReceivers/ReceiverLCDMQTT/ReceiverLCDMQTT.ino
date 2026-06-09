@@ -3,7 +3,7 @@
  *
  * Read out the WaterLevelTransmitter connected on Serial2 and publish the values on:
  * - a character-based LCD display using the hd44780 chip
- * - MQTT, in this case to a topic "garden/waterlevel"
+ * - MQTT, to a topic defined in MQTT_TOPIC
  *
  * Tested on an ESP32 DevKitC (Espressif).
  *
@@ -120,6 +120,9 @@ int    measuredVolumeLiterInt;    // volume in litres, integer
 double measuredVolumePercent;     // volume as a percentage
 int    measuredVolumePercentInt;  // volume as a percentage, integer
 bool   measuredLowBool;           // low indicator
+
+// MQTT configuration
+#define MQTT_TOPIC "home/regenput/state"
 
 EspMQTTClient mqttClient(
   SECRET_SSID,
@@ -395,7 +398,7 @@ void publishOnMqtt() {
     myObject["vol_percent"] = measuredVolumePercentInt;
     myObject["low"] = measuredLowBool;
     String jsonString = JSON.stringify(myObject);
-    if (!mqttClient.publish("garden/waterlevel", jsonString)) {
+    if (!mqttClient.publish(MQTT_TOPIC, jsonString)) {
 #if DEBUG_MQTT == 1
       Serial.println("MQTT publishing failed.");
 #endif

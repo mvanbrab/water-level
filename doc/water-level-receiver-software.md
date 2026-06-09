@@ -13,7 +13,7 @@ The supported destinations:
 - the serial port accessible through the USB connection (at 115200 Baud);
 - a character-based LCD display using the hd44780 chip;
 - a locally hosted webpage;
-- MQTT, in this case to a topic "garden/waterlevel".
+- MQTT, in this case to a topic "home/regenput/state".
 
 In addition, the program watches button input.
 Currently, there is only one button defined:
@@ -57,7 +57,7 @@ An example:
 ## MQTT output
 
 An MQTT server is accessed via WiFi using the Arduino library 'EspMQTTClient'
-and the output is published on a single topic "garden/waterlevel" once per minute.
+and the output is published on a single topic "home/regenput/state" once per minute.
 
 The payload is a JSON structure consisting of the fields:
 

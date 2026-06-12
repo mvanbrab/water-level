@@ -22,7 +22,7 @@
  * @author Martin Vanbrabant
  */
 
-// Create your own secrets.h (mine is not in the repository), based on secrets_template.h
+// Create your own secrets.h (mine is not in the repository), based on secrets_example.h
 #include "secrets.h"
 
 #include <Arduino_JSON.h>

@@ -82,6 +82,10 @@ to [Influxdb](https://www.influxdata.com/products/influxdb/).
 
 These data can then be read by [Grafana](https://grafana.com/oss/), a great tool to visualise data.
 
+#### Display the data in Home Assistant
+
+For this purpose, the code publishes MQTT Discovery messages with single component discovery payload, understood by Home Assistant.
+
 ## Testing
 
 Some DEBUG... preprocessor definitions are available to assist debugging the code.

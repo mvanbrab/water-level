@@ -3,7 +3,7 @@
  *
  * Read out the WaterLevelTransmitter connected on Serial2 and publish the values on:
  * - a character-based LCD display using the hd44780 chip
- * - MQTT, to a topic defined in MQTT_TOPIC
+ * - MQTT, to a topic defined in STATE_TOPIC; note that Home Assistant discovery is supported
  *
  * Tested on an ESP32 DevKitC (Espressif).
  *
@@ -37,30 +37,29 @@
  *         #include <WiFiClient.h>
  *
  * Latest tested version:
- * - Build on Arduino IDE 2.3.9
- * - Using esp32 by Espressif Systems board manager 3.3.9, selected board: ESP32 Dev Module
+ * - Build on Arduino IDE 2.3.10
+ * - Using esp32 by Espressif Systems board manager 3.3.10, selected board: ESP32 Dev Module
  * - With libraries (copied from verbose compile output)
- *   Using library Arduino_JSON at version 0.2.0 in folder: C:\Users\marti\Documents\Arduino\libraries\Arduino_JSON 
- *   Using library Wire at version 3.3.9 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.9\libraries\Wire 
+ *   Using library ArduinoJson at version 7.4.3 in folder: C:\Users\marti\Documents\Arduino\libraries\ArduinoJson 
+ *   Using library Wire at version 3.3.10 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.10\libraries\Wire 
  *   Using library hd44780 at version 1.3.2 in folder: C:\Users\marti\Documents\Arduino\libraries\hd44780 
  *   Using library EspMQTTClient at version 1.13.3 in folder: C:\Users\marti\Documents\Arduino\libraries\EspMQTTClient 
- *   Using library ArduinoOTA at version 3.3.9 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.9\libraries\ArduinoOTA 
- *   Using library Networking at version 3.3.9 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.9\libraries\Network 
- *   Using library Update at version 3.3.9 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.9\libraries\Update 
+ *   Using library ArduinoOTA at version 3.3.10 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.10\libraries\ArduinoOTA 
+ *   Using library Networking at version 3.3.10 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.10\libraries\Network 
+ *   Using library Update at version 3.3.10 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.10\libraries\Update 
  *   Using library PubSubClient at version 2.8 in folder: C:\Users\marti\Documents\Arduino\libraries\PubSubClient 
- *   Using library WiFi at version 3.3.9 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.9\libraries\WiFi 
- *   Using library WebServer at version 3.3.9 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.9\libraries\WebServer 
- *   Using library FS at version 3.3.9 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.9\libraries\FS 
- *   Using library ESPmDNS at version 3.3.9 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.9\libraries\ESPmDNS 
- *   Using library Hash at version 3.3.9 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.9\libraries\Hash  *   Using library Arduino_JSON at version 0.2.0 in folder: C:\Users\marti\Documents\Arduino\libraries\Arduino_JSON 
- *
+ *   Using library WiFi at version 3.3.10 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.10\libraries\WiFi 
+ *   Using library WebServer at version 3.3.10 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.10\libraries\WebServer 
+ *   Using library FS at version 3.3.10 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.10\libraries\FS 
+ *   Using library ESPmDNS at version 3.3.10 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.10\libraries\ESPmDNS 
+ *   Using library Hash at version 3.3.10 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.10\libraries\Hash  *
  * @author Martin Vanbrabant
  */
 
-// Create your own secrets.h (mine is not in the repository), based on secrets_template.h
+// Create your own secrets.h (mine is not in the repository), based on secrets_example.h
 #include "secrets.h"
 
-#include <Arduino_JSON.h>
+#include <ArduinoJson.h> // see https://arduinojson.org/v7/. This is not <Arduino_JSON.h>
 
 #include <Wire.h>
 #include <hd44780.h>                       // main hd44780 header
@@ -122,7 +121,13 @@ int    measuredVolumePercentInt;  // volume as a percentage, integer
 bool   measuredLowBool;           // low indicator
 
 // MQTT configuration
-#define MQTT_TOPIC "home/regenput/state"
+constexpr uint16_t MY_MQTT_MAX_PACKET_SIZE = 1024;
+constexpr char DEVICE_ID[] = "regenput_monitor";
+constexpr char DEVICE_NAME[] = "Regenput";
+constexpr char MANUFACTURER[] = "Martin Vanbrabant";
+constexpr char MODEL[] = "ESP32 Regenputmeter";
+constexpr char STATE_TOPIC[] = "home/regenput/state";
+constexpr char AVAILABILITY_TOPIC[] = "home/regenput/availability";
 
 EspMQTTClient mqttClient(
   SECRET_SSID,
@@ -130,11 +135,100 @@ EspMQTTClient mqttClient(
   SECRET_MQTT_SERVER,     // MQTT Broker server ip
   SECRET_MQTT_USER,       // Can be omitted if not needed
   SECRET_MQTT_PASS,       // Can be omitted if not needed
-  SECRET_HOSTNAME,        // Client name that uniquely identifies your device
-  SECRET_MQTT_PORT        // The MQTT port, default to 1883.
+  DEVICE_ID,              // Client name that uniquely identifies your device
+  SECRET_MQTT_PORT        // The MQTT port, defaults to 1883
 );
 
 bool connected = false;
+
+/*!
+ * Preset a JSON document with the common properties for Home Assistant discovery
+ */
+void presetDiscovery(JsonDocument& doc)
+{
+  doc.clear();
+
+  doc["availability_topic"] = AVAILABILITY_TOPIC;
+  doc["payload_available"] = "online";
+  doc["payload_not_available"] = "offline";
+
+  JsonObject device = doc["device"].to<JsonObject>();
+  device["name"] = DEVICE_NAME;
+  device["manufacturer"] = MANUFACTURER;
+  device["model"] = MODEL;
+  JsonArray ids = device["identifiers"].to<JsonArray>();
+  ids.add(DEVICE_ID);
+}
+
+/*!
+ * Publish Home Assistant discovery for a component
+ */
+void publishComponentDiscovery(const char* component, const char* objectId, JsonDocument& doc)
+{
+  String payload;
+  serializeJson(doc, payload);
+  String topic = String("homeassistant/") + component + "/" + objectId + "/config";
+#if DEBUG == 1
+  Serial.print("Publishing discovery to topic: ");
+  Serial.println(topic);
+  Serial.print("Payload: ");
+  Serial.println(payload);
+#endif
+
+  if (!mqttClient.publish(topic.c_str(), payload.c_str(), true /* retain */)) {
+#if DEBUG_MQTT == 1
+    Serial.print("MQTT publishing failed for topic: ");
+    Serial.println(topic);
+#endif
+    return;
+  }
+}
+
+/*!
+ * Publish all discovery configuration messages for Home Assistant discovery
+ */
+void publishDiscovery()
+{
+  JsonDocument doc;
+
+  presetDiscovery(doc);
+  doc["name"] = "Temperatuur";
+  doc["unique_id"] = "regenput_temperatuur";
+  doc["state_topic"] = STATE_TOPIC;
+  doc["unit_of_measurement"] = "°C";
+  doc["device_class"] = "temperature";
+  doc["state_class"] = "measurement";
+  doc["value_template"] = "{{ value_json.t_C }}";
+  publishComponentDiscovery("sensor", "regenput_temperatuur", doc);
+
+  presetDiscovery(doc);
+  doc["name"] = "Volume";
+  doc["unique_id"] = "regenput_volume";
+  doc["state_topic"] = STATE_TOPIC;
+  doc["unit_of_measurement"] = "liter";
+  doc["state_class"] = "measurement";
+  doc["value_template"] = "{{ value_json.vol_l }}";
+  publishComponentDiscovery("sensor", "regenput_volume", doc);
+
+  presetDiscovery(doc);
+  doc["name"] = "Volume percent";
+  doc["unique_id"] = "regenput_volume_percent";
+  doc["state_topic"] = STATE_TOPIC;
+  doc["unit_of_measurement"] = "%";
+  doc["state_class"] = "measurement";
+  doc["value_template"] = "{{ value_json.vol_percent }}";
+  publishComponentDiscovery("sensor", "regenput_volume_percent", doc);
+
+  presetDiscovery(doc);
+  doc["name"] = "Volumecheck";
+  doc["unique_id"] = "regenput_volume_laag";
+  doc["state_topic"] = STATE_TOPIC;
+  doc["payload_on"] = true;
+  doc["payload_off"] = false;
+  doc["value_template"] = "{{ value_json.low }}";
+  doc["device_class"] = "problem";
+  publishComponentDiscovery("binary_sensor", "regenput_volume_laag", doc);
+}
 
 /*!
  * This function is called once everything is connected (Wifi and MQTT)
@@ -142,9 +236,17 @@ bool connected = false;
  */
 void onConnectionEstablished()
 {
- #if DEBUG_MQTT == 1
+#if DEBUG_MQTT == 1
   Serial.println("MQTT connected.");
 #endif
+  publishDiscovery();
+  if (!mqttClient.publish(AVAILABILITY_TOPIC, "online", true)) {
+#if DEBUG_MQTT == 1
+    Serial.print("MQTT publishing failed for topic: ");
+    Serial.println(AVAILABILITY_TOPIC);
+#endif
+    return;
+  }
   connected = true;
 }
 
@@ -172,9 +274,13 @@ void setup() {
     Serial2.read();
   }
 
+  mqttClient.setMaxPacketSize(MY_MQTT_MAX_PACKET_SIZE);
+
 #if DEBUG_MQTT == 1
   mqttClient.enableDebuggingMessages(); // Enable debugging messages sent to serial output
 #endif
+
+  mqttClient.enableLastWillMessage(AVAILABILITY_TOPIC, "offline", true);
 }
 
 /*!
@@ -286,34 +392,35 @@ void handleFakeInput() {
  */
 void consume(const char * inputString) {
   static bool first = true;
-  static double low;
+  static double smoothedLow;
 
 #if DEBUG == 1
   Serial.println(millis());
   Serial.println(inputString);
 #endif
 
-  JSONVar myObject = JSON.parse(inputString);
-  if (JSON.typeof(myObject) != "object" ||
-      !myObject.hasOwnProperty("t_C") ||
-      !myObject.hasOwnProperty("vol_l") ||
-      !myObject.hasOwnProperty("vol_percent") ||
-      !myObject.hasOwnProperty("low")) {
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, inputString);
+  if (error) {
 #if DEBUG == 1
     Serial.println("Unexpected input skipped.");
 #endif
     return;
   }
 
-  smooth(measuredTDegreesCelcius, (double)myObject["t_C"],           first);
-  smooth(measuredVolumeLiter,     (double)((int) myObject["vol_l"]), first);
-  smooth(measuredVolumePercent,   (double)myObject["vol_percent"],   first);
-  smooth(low,                     (double)((bool) myObject["low"]),  first);
+  double tDegreesCelcius = doc["t_C"];
+  double volumeLiter = doc["vol_l"];
+  double volumePercent = doc["vol_percent"];
+  bool low = doc["low"];
+  smooth(measuredTDegreesCelcius, tDegreesCelcius, first);
+  smooth(measuredVolumeLiter,     volumeLiter,     first);
+  smooth(measuredVolumePercent,   volumePercent,   first);
+  smooth(smoothedLow,             (double)low,     first);
   first = false;
   measuredTDegreesCelcius1 = round(measuredTDegreesCelcius * 10.0) / 10.0;
   measuredVolumeLiterInt = measuredVolumeLiter + 0.5;
   measuredVolumePercentInt = measuredVolumePercent + 0.5;
-  measuredLowBool = (low >= 0.5);
+  measuredLowBool = (smoothedLow >= 0.5);
 
   publishOnLCD();
   publishOnMqtt();
@@ -392,15 +499,23 @@ void publishOnMqtt() {
   }
   tNowWriting = millis();
   if (first || (tNowWriting - tPrevWriting) >= MQTT_INTERVAL) {
-    JSONVar myObject;
-    myObject["t_C"] = measuredTDegreesCelcius1;
-    myObject["vol_l"] = measuredVolumeLiterInt;
-    myObject["vol_percent"] = measuredVolumePercentInt;
-    myObject["low"] = measuredLowBool;
-    String jsonString = JSON.stringify(myObject);
-    if (!mqttClient.publish(MQTT_TOPIC, jsonString)) {
+    JsonDocument doc;
+    doc["t_C"] = measuredTDegreesCelcius1;
+    doc["vol_l"] = measuredVolumeLiterInt;
+    doc["vol_percent"] = measuredVolumePercentInt;
+    doc["low"] = measuredLowBool;
+    String jsonString;
+    serializeJson(doc, jsonString);
+#if DEBUG == 1
+    Serial.print("Publishing state to topic: ");
+    Serial.println(STATE_TOPIC);
+    Serial.print("Payload: ");
+    Serial.println(jsonString);
+#endif
+    if (!mqttClient.publish(STATE_TOPIC, jsonString)) {
 #if DEBUG_MQTT == 1
-      Serial.println("MQTT publishing failed.");
+      Serial.print("MQTT publishing failed for topic: ");
+      Serial.println(STATE_TOPIC);
 #endif
       return;
     }

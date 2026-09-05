@@ -7,27 +7,11 @@
  *
  * Tested on an ESP32 DevKitC (Espressif).
  *
- * Previous tested version:
- * - Build on Arduino IDE 2.3.3
- * - Using esp32 by Espressif Systems board manager 3.0.7, selected board: ESP32 Dev Module
- * - With libraries (copied from verbose compile output)
- *   Using library Arduino_JSON at version 0.2.0 in folder: C:\Users\marti\Documents\Arduino\libraries\Arduino_JSON 
- *   Using library Wire at version 3.0.7 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.7\libraries\Wire 
- *   Using library hd44780 at version 1.3.2 in folder: C:\Users\marti\Documents\Arduino\libraries\hd44780 
- *   Using library EspMQTTClient at version 1.13.3 in folder: C:\Users\marti\Documents\Arduino\libraries\EspMQTTClient 
- *   Using library ArduinoOTA at version 3.0.7 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.7\libraries\ArduinoOTA 
- *   Using library Networking at version 3.0.7 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.7\libraries\Network 
- *   Using library Update at version 3.0.7 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.7\libraries\Update 
- *   Using library PubSubClient at version 2.8 in folder: C:\Users\marti\Documents\Arduino\libraries\PubSubClient 
- *   Using library WiFi at version 3.0.7 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.7\libraries\WiFi 
- *   Using library WebServer at version 3.0.7 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.7\libraries\WebServer 
- *   Using library FS at version 3.0.7 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.7\libraries\FS 
- *   Using library ESPmDNS at version 3.0.7 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.7\libraries\ESPmDNS 
- *
  * About library EspMQTTClient latest version (1.13.3) by Patrick Lapointe:
  *   It contains a compatibility issue w.r.t. Espressif Systems board manager 3.x
  *   Solution according to https://forum.arduino.cc/t/broken-dependencies/1266624/10 is working:
- *     Open c:\Users\<you>\Documents\Arduino\libraries\EspMQTTClient\src\EspMQTTClient.h
+ *     Open on Windows c:\Users\<you>\Documents\Arduino\libraries\EspMQTTClient\src\EspMQTTClient.h
+ *     or on Linux: /home/<you>/Arduino/libraries/EspMQTTClient/src/EspMQTTClient.h
  *     Change this:
  *       #else // for ESP32
  *         #include <WiFiClient.h>
@@ -36,7 +20,7 @@
  *         #include <WiFi.h>
  *         #include <WiFiClient.h>
  *
- * Latest tested version:
+ * Latest tested version (built on Windows):
  * - Build on Arduino IDE 2.3.10
  * - Using esp32 by Espressif Systems board manager 3.3.10, selected board: ESP32 Dev Module
  * - With libraries (copied from verbose compile output)
@@ -52,7 +36,26 @@
  *   Using library WebServer at version 3.3.10 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.10\libraries\WebServer 
  *   Using library FS at version 3.3.10 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.10\libraries\FS 
  *   Using library ESPmDNS at version 3.3.10 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.10\libraries\ESPmDNS 
- *   Using library Hash at version 3.3.10 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.10\libraries\Hash  *
+ *   Using library Hash at version 3.3.10 in folder: C:\Users\marti\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.10\libraries\Hash
+ *
+ * Latest test version (build on Linux):
+ * - Build on Arduino IDE 2.3.10
+ * - Using esp32 by Espressif Systems board manager 3.3.11, selected board: ESP32 Dev Module
+ * - With libraries (copied from verbose compile output)
+ *   Using library ArduinoJson at version 7.4.3 in folder: /home/martin/Arduino/libraries/ArduinoJson 
+ *   Using library Wire at version 3.3.11 in folder: /home/martin/.arduino15/packages/esp32/hardware/esp32/3.3.11/libraries/Wire 
+ *   Using library hd44780 at version 1.3.2 in folder: /home/martin/Arduino/libraries/hd44780 
+ *   Using library EspMQTTClient at version 1.13.3 in folder: /home/martin/Arduino/libraries/EspMQTTClient 
+ *   Using library ArduinoOTA at version 3.3.11 in folder: /home/martin/.arduino15/packages/esp32/hardware/esp32/3.3.11/libraries/ArduinoOTA 
+ *   Using library Networking at version 3.3.11 in folder: /home/martin/.arduino15/packages/esp32/hardware/esp32/3.3.11/libraries/Network 
+ *   Using library Update at version 3.3.11 in folder: /home/martin/.arduino15/packages/esp32/hardware/esp32/3.3.11/libraries/Update 
+ *   Using library PubSubClient at version 2.8 in folder: /home/martin/Arduino/libraries/PubSubClient 
+ *   Using library WiFi at version 3.3.11 in folder: /home/martin/.arduino15/packages/esp32/hardware/esp32/3.3.11/libraries/WiFi 
+ *   Using library WebServer at version 3.3.11 in folder: /home/martin/.arduino15/packages/esp32/hardware/esp32/3.3.11/libraries/WebServer 
+ *   Using library FS at version 3.3.11 in folder: /home/martin/.arduino15/packages/esp32/hardware/esp32/3.3.11/libraries/FS 
+ *   Using library ESPmDNS at version 3.3.11 in folder: /home/martin/.arduino15/packages/esp32/hardware/esp32/3.3.11/libraries/ESPmDNS 
+ *   Using library Hash at version 3.3.11 in folder: /home/martin/.arduino15/packages/esp32/hardware/esp32/3.3.11/libraries/Hash 
+ *
  * @author Martin Vanbrabant
  */
 

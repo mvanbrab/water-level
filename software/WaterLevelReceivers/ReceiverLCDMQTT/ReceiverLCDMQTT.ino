@@ -5,7 +5,10 @@
  * - a character-based LCD display using the hd44780 chip
  * - MQTT, to a topic defined in STATE_TOPIC; note that Home Assistant discovery is supported
  *
- * Tested on an ESP32 DevKitC (Espressif).
+ * Required libraries:
+ * - ArduinoJson by Benoit Blanchon, 7.4.3
+ * - hd44780 by Bill Perry, 1.3.2
+ * - EspMQTTClient by Patrick Lapointe, 1.13.3 (with dependency PubSubLient)
  *
  * About library EspMQTTClient latest version (1.13.3) by Patrick Lapointe:
  *   It contains a compatibility issue w.r.t. Espressif Systems board manager 3.x
@@ -19,6 +22,8 @@
  *       #else // for ESP32
  *         #include <WiFi.h>
  *         #include <WiFiClient.h>
+ *
+ * Tested on an ESP32 DevKitC (Espressif).
  *
  * Latest tested version (built on Windows):
  * - Build on Arduino IDE 2.3.10
